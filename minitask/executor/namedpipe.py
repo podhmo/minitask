@@ -13,11 +13,21 @@ logger = logging.getLogger(__name__)
 _Action = namedtuple("_Action", "name, where")
 
 
+class _TemporaryDirectory(tempfile.TemporaryDirectory):
+    def __enter__(self):
+        logger.info("create tempdir %s", self.name)
+        return super().__enter__()
+
+    def __exit__(self, exc, value, tb):
+        logger.info("remove tempdir %s", self.name)
+        return super().__exit__(exc, value, tb)
+
+
 class Executor:
     def __init__(self, *, as_subcommand=as_subcommand) -> None:
         self.actions: t.Dict[str, _Action] = {}
 
-        self._tempdir: t.Optional[tempfile.TemporaryDirectory] = None
+        self._tempdir: t.Optional[_TemporaryDirectory] = None
         self.dirpath: t.Optional[str] = None
 
         self._processess: t.List[subprocess.Process] = []
@@ -35,7 +45,7 @@ class Executor:
         return self._as_subcommand(fn)
 
     def __enter__(self) -> Executor:
-        self._tempdir = tempfile.TemporaryDirectory()
+        self._tempdir = _TemporaryDirectory()
         self.dirpath = self._tempdir.__enter__()
         return self
 
@@ -64,7 +74,7 @@ class Executor:
                 args.append(f"--{k}")
             else:
                 args.append(f"--{k}")
-                args.append(str(v))
+                args.append(str(v))  # support: str,int,float
 
         cmd = [sys.executable, filename, action_name, *args]
         p = subprocess.Popen(cmd)
