@@ -26,24 +26,24 @@ class IPC:
         self.serialization = serialization or jsonrpc.JSONRPCProtocol()
         self.port = port
 
-    def connect(self, endpoint: str,) -> InternalReader:
+    def connect(self, endpoint: str,) -> InternalReceiver:
         io = self.port.create_reader_port(endpoint)
         assert io is not None, io
-        return InternalReader(io, serialization=self.serialization, port=self.port)
+        return InternalReceiver(io, serialization=self.serialization, port=self.port)
 
-    def serve(self, endpoint: str,) -> InternalReader:
+    def serve(self, endpoint: str,) -> InternalReceiver:
         io = self.port.create_writer_port(endpoint)
         assert io is not None, io
-        return InternalWriter(io, serialization=self.serialization, port=self.port)
+        return InternalSender(io, serialization=self.serialization, port=self.port)
 
 
-class InternalReader:
+class InternalReceiver:
     def __init__(self, io: t.IO[bytes], *, serialization, port: Port) -> None:
         self.io = io
         self.serialization = serialization
         self.port = port
 
-    def read(self) -> RPCRequest:
+    def recv(self) -> RPCRequest:
         msg = self.port.read(file=self.io)
         if not msg:
             return None
@@ -57,7 +57,7 @@ class InternalReader:
 
     def __iter__(self) -> t.Iterable[RPCRequest]:
         while True:
-            msg = self.read()
+            msg = self.recv()
             if msg is None:
                 break
             yield msg
@@ -73,13 +73,13 @@ class InternalReader:
             self.io = None  # TODO: lock? (semaphore?)
 
 
-class InternalWriter:
+class InternalSender:
     def __init__(self, io: t.IO[bytes], *, serialization, port: Port) -> None:
         self.io = io
         self.serialization = serialization
         self.port = port
 
-    def write(
+    def send(
         self,
         method: str,
         args: t.List[t.Any] = None,

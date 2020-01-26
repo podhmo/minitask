@@ -20,7 +20,7 @@ def producer(*, endpoint: str, ng: bool = False):
     with ipc.serve(endpoint) as x:
         for i in range(5):
             # msgpackrpc not support kwargs
-            x.write("say", args=["hello", [pid]])
+            x.send("say", args=["hello", [pid]])
             time.sleep(0.1)
             if ng:
                 1 / 0
