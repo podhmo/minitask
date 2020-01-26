@@ -1,7 +1,12 @@
 import time
+from handofcats import as_subcommand
 import minitask
 from minitask.port import fake as port
 from minitask.executor.threaded import Executor
+
+# from minitask.port import namedpipe as port
+# from minitask.executor.namedpipe import Executor
+
 
 executor = Executor()
 
@@ -32,3 +37,7 @@ def consumer(*, endpoint: str, ng: bool = False):
             print("got", msg.unique_id, msg.method, msg.args, "with", pid)
             if ng:
                 1 / 0
+
+
+if __name__ == "__main__":
+    as_subcommand.run()
