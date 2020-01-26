@@ -72,7 +72,6 @@ class InternalReceiver(t.Generic[T]):
         return self
 
     def __exit__(self, typ, val, tb):
-        # TODO: exception is raised.
         if self.io is not None:
             self.io.close()
             self.io = None  # TODO: lock? (semaphore?)
@@ -103,7 +102,6 @@ class InternalSender:
             logger.warn("already closed, but exception is cached: %r", val)
             return not self.sensitive
 
-        # TODO: add error handling?
         if typ is not None:
             if issubclass(typ, BrokenPipeError):
                 logger.info("broken type: %r", val)
