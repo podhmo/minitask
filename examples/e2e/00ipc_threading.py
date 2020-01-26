@@ -10,18 +10,14 @@ executor = Executor()
 @as_subcommand
 def run():
     with executor:
-        ps = []
         n = 2
 
         for uid in range(n):
             endpoint = executor.create_endpoint(uid=uid)
-            pp = executor.spawn(producer, endpoint=endpoint)
-            ps.append(pp)
-            cp = executor.spawn(consumer, endpoint=endpoint)
-            ps.append(cp)
+            executor.spawn(producer, endpoint=endpoint)
+            executor.spawn(consumer, endpoint=endpoint)
 
-        for p in ps:
-            p.wait()
+        executor.wait()
 
 
 @executor.register

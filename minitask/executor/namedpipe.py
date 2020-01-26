@@ -15,28 +15,32 @@ _Action = namedtuple("_Action", "name, where")
 
 
 class Executor:
-    def __init__(self, *, as_subcommand=as_subcommand):
+    def __init__(self, *, as_subcommand=as_subcommand) -> None:
         self.actions: t.Dict[str, _Action] = {}
 
-        self._tempdir = None
-        self.dirpath = None
+        self._tempdir: t.Optional[tempfile.TemporaryDirectory] = None
+        self.dirpath: t.Optional[str] = None
+
+        self._processess: t.List[subprocess.Process] = []
 
         # TODO: omit
         self._as_subcommand = as_subcommand
         self.run = self._as_subcommand.run
 
-    def register(self, fn, name=None):
+    def register(
+        self, fn: t.Callable[..., t.Any], name: t.Optional[str] = None
+    ) -> t.Callable[..., t.Any]:
         name = name or fn.__name__
         where = sys.modules[fn.__module__].__file__
         self.actions[fn] = _Action(name=name, where=where)
         return self._as_subcommand(fn)
 
-    def __enter__(self):
+    def __enter__(self) -> Executor:
         self._tempdir = tempfile.TemporaryDirectory()
         self.dirpath = self._tempdir.__enter__()
         return self
 
-    def __exit__(self, typ, val, tb):
+    def __exit__(self, typ, val, tb) -> None:
         if self._tempdir is not None:
             return self._tempdir.__exit__(typ, val, tb)
 
@@ -45,8 +49,8 @@ class Executor:
         fn: t.Callable[..., t.Any],
         filename: t.Optional[str] = None,
         _depth: int = 1,
-        **kwargs,
-    ):
+        **kwargs: t.Any,
+    ) -> subprocess.Process:
         action = self.actions[fn]
         action_name = action.name
 
@@ -59,7 +63,13 @@ class Executor:
             [(f"--{k}", str(v)) for k, v in kwargs.items()]
         )
         cmd = [sys.executable, filename, action_name, *args]
-        return subprocess.Popen(cmd)
+        p = subprocess.Popen(cmd)
+        self._processess.append(p)
+        return p
 
-    def create_endpoint(self, *, uid: int):
+    def create_endpoint(self, *, uid: int) -> str:
         return pathlib.Path(self.dirpath) / f"worker.{uid}.fifo"
+
+    def wait(self) -> None:
+        for p in self._processess:
+            p.wait()

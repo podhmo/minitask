@@ -1,40 +1,35 @@
 from __future__ import annotations
+import typing as t
 import threading
 from functools import partial
 
 
 class Executor:
     def __init__(self):
-        self.actions = {}
+        self.actions: t.Dict[t.Callable[..., t.Any], str] = {}
+        self._threads: threading.Thread = []
 
     def register(self, fn):
         self.actions[fn] = fn.__name__
         return fn
 
-    def __enter__(self):
+    def __enter__(self) -> Executor:
         return self
 
-    def __exit__(self, typ, val, tb):
+    def __exit__(self, typ, val, tb) -> None:
         pass
 
-    def spawn(self, fn, **kwargs):
+    def spawn(self, fn, **kwargs) -> threading.Thread:
         assert fn in self.actions
         action = partial(fn, **kwargs)
         th = threading.Thread(target=action, daemon=True)  # daemon = True?
         th.start()
-        return _ProcessAdapter(th)
+        self._threads.append(th)
+        return th
 
-    def create_endpoint(self, *, uid: int):
-        return uid
+    def create_endpoint(self, *, uid: int) -> str:
+        return str(uid)
 
-
-class _ProcessAdapter:
-    def __init__(self, th: threading.Thread) -> None:
-        self.th = th
-
-    def wait(self):
-        self.th.join()
-
-    def terminate(self):
-        # send to None?
-        pass  # daemon=True, so ignored
+    def wait(self) -> None:
+        for th in self._threads:
+            th.join()
