@@ -2,6 +2,8 @@ import typing as t
 import os
 import time
 import logging
+from ._base import read, write # noqa 410
+
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +17,6 @@ def create_writer_port(endpoint: str) -> t.IO[bytes]:
     return open(endpoint, "wb", opener=_opener)
 
 
-@staticmethod
 def create_reader_port(
     endpoint: str, retries=[0.1, 0.2, 0.2, 0.4, 0.8, 1.6, 3.2, 6.4, 12.8]
 ) -> t.IO[bytes]:
