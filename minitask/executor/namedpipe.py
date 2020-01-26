@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 _Action = namedtuple("_Action", "name, where")
 
 
-class Environment:
+class Executor:
     def __init__(self, *, as_subcommand=as_subcommand):
         self.actions: t.Dict[str, _Action] = {}
 

@@ -3,7 +3,7 @@ import threading
 from functools import partial
 
 
-class Environment:
+class Executor:
     def __init__(self):
         self.actions = {}
 

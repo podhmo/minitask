@@ -3,9 +3,9 @@ import time
 from handofcats import as_subcommand
 import minitask
 from minitask.port import namedpipe as port
-from minitask.environment.namedpipe import Environment
+from minitask.executor.namedpipe import Executor
 
-env = Environment()
+env = Executor()
 
 
 @as_subcommand

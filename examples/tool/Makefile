@@ -8,7 +8,4 @@ default: 00 01 02
 
 02:
 	python $(shell echo $@*.py) | tee $(patsubst %.py,%.output,$(shell echo $@*.py))
-03:
-	DEBUG=1 python $(shell echo $@*.py) run
-04:
-	DEBUG=1 python $(shell echo $@*.py) run
+
