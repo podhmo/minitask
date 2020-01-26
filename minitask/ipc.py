@@ -1,5 +1,6 @@
 from __future__ import annotations
 import typing as t
+from tinyrpc.exc import RPCError
 from tinyrpc.protocols import jsonrpc
 from tinyrpc.protocols import RPCRequest
 
@@ -44,7 +45,13 @@ class InternalReader:
         msg = self.port.read(file=self.io)
         if not msg:
             return None
-        return self.serialization.parse_request(msg)
+        try:
+            return self.serialization.parse_request(msg)
+        except RPCError as e:
+            # xxx
+            e.unique_id = None
+            e.method = None
+            return e
 
     def __iter__(self) -> t.Iterable[RPCRequest]:
         while True:
@@ -75,7 +82,7 @@ class InternalWriter:
         method: str,
         args: t.List[t.Any] = None,
         kwargs: t.Dict[str, t.Any] = None,
-        one_way: bool = False,
+        one_way: bool = False,  # TODO: hmm
     ):
         req = self.serialization.create_request(
             method, args=args, kwargs=kwargs, one_way=one_way
@@ -86,6 +93,14 @@ class InternalWriter:
         return self
 
     def __exit__(self, typ, val, tb):
+        # TODO: add error handling?
+        if typ is not None:
+            if val is None:
+                val = type()
+
+            req = self.serialization.create_request("").error_respond(val)
+            self.port.write(req.serialize(), file=self.io)
+
         if self.io is not None:
             self.io.close()
             self.io = None  # TODO: lock?

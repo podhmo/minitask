@@ -70,6 +70,11 @@ class Executor:
     def create_endpoint(self, *, uid: int) -> str:
         return pathlib.Path(self.dirpath) / f"worker.{uid}.fifo"
 
-    def wait(self) -> None:
+    def wait(self, *, check: bool = True) -> None:
         for p in self._processess:
             p.wait()
+            if check:
+                cp = subprocess.CompletedProcess(
+                    p.args, p.returncode, stdout=p.stdout, stderr=p.stderr
+                )
+                cp.check_returncode()
