@@ -46,6 +46,13 @@ class InternalRead:
             return None
         return self.serialization.parse_request(msg)
 
+    def __iter__(self) -> t.Iterable[RPCRequest]:
+        while True:
+            msg = self.read()
+            if msg is None:
+                break
+            yield msg
+
     def __enter__(self):
         return self
 

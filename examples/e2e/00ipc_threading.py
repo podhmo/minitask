@@ -46,10 +46,7 @@ def consumer(*, endpoint: str):
     ipc = minitask.IPC(port=port)
     pid = os.getpid()
     with ipc.connect(endpoint) as x:
-        while True:
-            msg = x.read()
-            if msg is None:
-                break
+        for msg in x:
             print("got", msg.unique_id, msg.method, msg.args, "with", pid)
 
 
