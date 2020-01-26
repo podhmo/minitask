@@ -2,7 +2,7 @@ from __future__ import annotations
 import time
 from handofcats import as_subcommand
 import minitask
-from minitask.network import namedpipe as network
+from minitask.port import namedpipe as port
 from minitask.environment.namedpipe import Environment
 
 env = Environment()
@@ -30,7 +30,7 @@ def run():
 def producer(*, endpoint: str):
     import os
 
-    ipc = minitask.IPC(network=network)
+    ipc = minitask.IPC(port=port)
     pid = os.getpid()
     with ipc.serve(endpoint) as x:
         for i in range(5):
@@ -43,7 +43,7 @@ def producer(*, endpoint: str):
 def consumer(*, endpoint: str):
     import os
 
-    ipc = minitask.IPC(network=network)
+    ipc = minitask.IPC(port=port)
     pid = os.getpid()
     with ipc.connect(endpoint) as x:
         while True:

@@ -5,14 +5,14 @@ from tinyrpc.protocols import RPCRequest
 
 # TODO: type
 Serialization = t.Any
-Network = t.Any
+Port = t.Any
 
 
 class IPC:
     # from tinyrpc.protocols import msgpackrpc
 
     # def __init__(
-    #     self, *, serialization=msgpackrpc.MSGPACKRPCProtocol(), network=network
+    #     self, *, serialization=msgpackrpc.MSGPACKRPCProtocol(), port=port
     # ):
 
     # TODO: type
@@ -20,28 +20,28 @@ class IPC:
         self,
         *,
         serialization: t.Optional[Serialization] = None,
-        network: t.Optional[Network] = None,
+        port: t.Optional[Port] = None,
     ):
         self.serialization = serialization or jsonrpc.JSONRPCProtocol()
-        self.network = network
+        self.port = port
 
     def connect(self, endpoint: str,) -> InternalRead:
-        io = self.network.create_reader_port(endpoint)
-        return InternalRead(io, serialization=self.serialization, network=self.network)
+        io = self.port.create_reader_port(endpoint)
+        return InternalRead(io, serialization=self.serialization, port=self.port)
 
     def serve(self, endpoint: str,) -> InternalRead:
-        io = self.network.create_writer_port(endpoint)
-        return InternalWrite(io, serialization=self.serialization, network=self.network)
+        io = self.port.create_writer_port(endpoint)
+        return InternalWrite(io, serialization=self.serialization, port=self.port)
 
 
 class InternalRead:
-    def __init__(self, io: t.IO[bytes], *, serialization, network) -> None:
+    def __init__(self, io: t.IO[bytes], *, serialization, port: Port) -> None:
         self.io = io
         self.serialization = serialization
-        self.network = network
+        self.port = port
 
     def read(self) -> RPCRequest:
-        msg = self.network.read(port=self.io)
+        msg = self.port.read(file=self.io)
         if not msg:
             return None
         return self.serialization.parse_request(msg)
@@ -58,10 +58,10 @@ class InternalRead:
 
 
 class InternalWrite:
-    def __init__(self, io: t.IO[bytes], *, serialization, network) -> None:
+    def __init__(self, io: t.IO[bytes], *, serialization, port: Port) -> None:
         self.io = io
         self.serialization = serialization
-        self.network = network
+        self.port = port
 
     def write(
         self,
@@ -73,7 +73,7 @@ class InternalWrite:
         req = self.serialization.create_request(
             method, args=args, kwargs=kwargs, one_way=one_way
         )
-        return self.network.write(req.serialize(), port=self.io)
+        return self.port.write(req.serialize(), file=self.io)
 
     def __enter__(self):
         return self

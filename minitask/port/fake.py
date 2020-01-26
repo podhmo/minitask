@@ -25,18 +25,18 @@ def create_reader_port(endpoint: t.Optional[str] = None) -> _IOAdapter:
     return mapping[endpoint]
 
 
-def write(body: bytes, *, port: _IOAdapter):
+def write(body: bytes, *, file: _IOAdapter):
     size = len(body)
-    logger.debug("send	size:%d	body:%r", size, body)
-    port.q.put(body)
+    logger.debug("write	size:%d	body:%r", size, body)
+    file.q.put(body)
 
 
-def read(*, port: _IOAdapter) -> bytes:
-    body = port.q.get()
+def read(*, file: _IOAdapter) -> bytes:
+    body = file.q.get()
     if body is None:
         return ""
     size = len(body)
-    logger.debug("recv	size:%s	body:%r", size, body)
+    logger.debug("read	size:%s	body:%r", size, body)
     return body
 
 

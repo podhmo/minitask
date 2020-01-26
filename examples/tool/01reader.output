@@ -1,6 +1,14 @@
-{"jsonrpc": "2.0", "method": "hello", "params": {"line": "default: 00 01\n"}, "id": 1}
+{"jsonrpc": "2.0", "method": "hello", "params": {"line": "default: 00 01 02\n"}, "id": 1}
 {"jsonrpc": "2.0", "method": "hello", "params": {"line": "\n"}, "id": 2}
 {"jsonrpc": "2.0", "method": "hello", "params": {"line": "00:\n"}, "id": 3}
 {"jsonrpc": "2.0", "method": "hello", "params": {"line": "\tcat Makefile | python -m minitask.tool writer | tee $@writer.output\n"}, "id": 4}
-{"jsonrpc": "2.0", "method": "hello", "params": {"line": "01:\n"}, "id": 5}
-{"jsonrpc": "2.0", "method": "hello", "params": {"line": "\tcat Makefile | python -m minitask.tool writer | python -m minitask.tool reader | tee $@reader.output\n"}, "id": 6}
+{"jsonrpc": "2.0", "method": "hello", "params": {"line": "\n"}, "id": 5}
+{"jsonrpc": "2.0", "method": "hello", "params": {"line": "01:\n"}, "id": 6}
+{"jsonrpc": "2.0", "method": "hello", "params": {"line": "\tcat Makefile | python -m minitask.tool writer | python -m minitask.tool reader | tee $@reader.output\n"}, "id": 7}
+{"jsonrpc": "2.0", "method": "hello", "params": {"line": "\n"}, "id": 8}
+{"jsonrpc": "2.0", "method": "hello", "params": {"line": "02:\n"}, "id": 9}
+{"jsonrpc": "2.0", "method": "hello", "params": {"line": "\tpython $(shell echo $@*.py) | tee $(patsubst %.py,%.output,$(shell echo $@*.py))\n"}, "id": 10}
+{"jsonrpc": "2.0", "method": "hello", "params": {"line": "03:\n"}, "id": 11}
+{"jsonrpc": "2.0", "method": "hello", "params": {"line": "\tDEBUG=1 python $(shell echo $@*.py) run\n"}, "id": 12}
+{"jsonrpc": "2.0", "method": "hello", "params": {"line": "04:\n"}, "id": 13}
+{"jsonrpc": "2.0", "method": "hello", "params": {"line": "\tDEBUG=1 python $(shell echo $@*.py) run\n"}, "id": 14}
