@@ -1,6 +1,5 @@
 from __future__ import annotations
 import typing as t
-import itertools
 import sys
 import pathlib
 import tempfile
@@ -59,9 +58,14 @@ class Executor:
             filename = sys._getframe(_depth).f_globals["__file__"]
 
         # TODO: fix gentle flag name conversion
-        args = itertools.chain.from_iterable(
-            [(f"--{k}", str(v)) for k, v in kwargs.items()]
-        )
+        args = []
+        for k, v in kwargs.items():
+            if v is True:
+                args.append(f"--{k}")
+            else:
+                args.append(f"--{k}")
+                args.append(str(v))
+
         cmd = [sys.executable, filename, action_name, *args]
         p = subprocess.Popen(cmd)
         logger.info("spawn pid=%d, %s", p.pid, " ".join(cmd))
