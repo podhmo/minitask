@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 
-install_requires = []
+install_requires = ["handofcats"]
 dev_requires = ["black", "flake8", "mypy"]
 tests_requires = ["pytest"]
 
