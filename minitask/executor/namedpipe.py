@@ -50,6 +50,7 @@ class Executor:
         return self
 
     def __exit__(self, typ, val, tb) -> None:
+        self.wait()
         if self._tempdir is not None:
             return self._tempdir.__exit__(typ, val, tb)
 

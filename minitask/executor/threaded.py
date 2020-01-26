@@ -20,7 +20,7 @@ class Executor:
         return self
 
     def __exit__(self, typ, val, tb) -> None:
-        pass
+        self.wait()
 
     def spawn(self, fn, **kwargs) -> threading.Thread:
         assert fn in self.actions

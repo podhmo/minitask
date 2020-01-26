@@ -28,10 +28,12 @@ class IPC:
 
     def connect(self, endpoint: str,) -> InternalReader:
         io = self.port.create_reader_port(endpoint)
+        assert io is not None, io
         return InternalReader(io, serialization=self.serialization, port=self.port)
 
     def serve(self, endpoint: str,) -> InternalReader:
         io = self.port.create_writer_port(endpoint)
+        assert io is not None, io
         return InternalWriter(io, serialization=self.serialization, port=self.port)
 
 
