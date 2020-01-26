@@ -25,16 +25,16 @@ class IPC:
         self.serialization = serialization or jsonrpc.JSONRPCProtocol()
         self.port = port
 
-    def connect(self, endpoint: str,) -> InternalRead:
+    def connect(self, endpoint: str,) -> InternalReader:
         io = self.port.create_reader_port(endpoint)
-        return InternalRead(io, serialization=self.serialization, port=self.port)
+        return InternalReader(io, serialization=self.serialization, port=self.port)
 
-    def serve(self, endpoint: str,) -> InternalRead:
+    def serve(self, endpoint: str,) -> InternalReader:
         io = self.port.create_writer_port(endpoint)
-        return InternalWrite(io, serialization=self.serialization, port=self.port)
+        return InternalWriter(io, serialization=self.serialization, port=self.port)
 
 
-class InternalRead:
+class InternalReader:
     def __init__(self, io: t.IO[bytes], *, serialization, port: Port) -> None:
         self.io = io
         self.serialization = serialization
@@ -64,7 +64,7 @@ class InternalRead:
             self.io = None  # TODO: lock? (semaphore?)
 
 
-class InternalWrite:
+class InternalWriter:
     def __init__(self, io: t.IO[bytes], *, serialization, port: Port) -> None:
         self.io = io
         self.serialization = serialization
