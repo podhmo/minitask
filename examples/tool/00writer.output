@@ -8,8 +8,5 @@
 {"jsonrpc": "2.0", "method": "hello", "params": {"line": "\tcat Makefile | python -m minitask.tool writer | python -m minitask.tool reader | tee $@reader.output\n"}, "id": 7}72
 {"jsonrpc": "2.0", "method": "hello", "params": {"line": "\n"}, "id": 8}75
 {"jsonrpc": "2.0", "method": "hello", "params": {"line": "02:\n"}, "id": 9}155
-{"jsonrpc": "2.0", "method": "hello", "params": {"line": "\tpython $(shell echo $@*.py) | tee $(patsubst %.py,%.output,$(shell echo $@*.py))\n"}, "id": 10}76
-{"jsonrpc": "2.0", "method": "hello", "params": {"line": "03:\n"}, "id": 11}114
-{"jsonrpc": "2.0", "method": "hello", "params": {"line": "\tDEBUG=1 python $(shell echo $@*.py) run\n"}, "id": 12}76
-{"jsonrpc": "2.0", "method": "hello", "params": {"line": "04:\n"}, "id": 13}114
-{"jsonrpc": "2.0", "method": "hello", "params": {"line": "\tDEBUG=1 python $(shell echo $@*.py) run\n"}, "id": 14}
+{"jsonrpc": "2.0", "method": "hello", "params": {"line": "\tpython $(shell echo $@*.py) | tee $(patsubst %.py,%.output,$(shell echo $@*.py))\n"}, "id": 10}73
+{"jsonrpc": "2.0", "method": "hello", "params": {"line": "\n"}, "id": 11}
