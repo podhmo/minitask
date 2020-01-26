@@ -1,0 +1,6 @@
+{"jsonrpc": "2.0", "method": "hello", "params": {"line": "default: 00 01\n"}, "id": 1}
+{"jsonrpc": "2.0", "method": "hello", "params": {"line": "\n"}, "id": 2}
+{"jsonrpc": "2.0", "method": "hello", "params": {"line": "00:\n"}, "id": 3}
+{"jsonrpc": "2.0", "method": "hello", "params": {"line": "\tcat Makefile | python -m minitask.tool writer | tee $@writer.output\n"}, "id": 4}
+{"jsonrpc": "2.0", "method": "hello", "params": {"line": "01:\n"}, "id": 5}
+{"jsonrpc": "2.0", "method": "hello", "params": {"line": "\tcat Makefile | python -m minitask.tool writer | python -m minitask.tool reader | tee $@reader.output\n"}, "id": 6}
