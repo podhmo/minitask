@@ -31,14 +31,14 @@ class IPC:
             self.serialization = jsonrpc
         self.port = port
 
-    def connect(self, endpoint: str, *, sensitive: bool = True) -> InternalReceiver:
+    def connect(self, endpoint: str, *, sensitive: bool = False) -> InternalReceiver:
         io = self.port.create_reader_port(endpoint)
         assert io is not None, io
         return InternalReceiver(
             io, serialization=self.serialization, port=self.port, sensitive=sensitive
         )
 
-    def serve(self, endpoint: str, *, sensitive: bool = True) -> InternalReceiver:
+    def serve(self, endpoint: str, *, sensitive: bool = False) -> InternalReceiver:
         io = self.port.create_writer_port(endpoint)
         assert io is not None, io
         return InternalSender(
