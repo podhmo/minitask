@@ -7,6 +7,7 @@ import subprocess
 import logging
 from collections import namedtuple
 from handofcats import as_subcommand
+from ._gensym import IDGenerator
 
 logger = logging.getLogger(__name__)
 
@@ -24,8 +25,14 @@ class _TemporaryDirectory(tempfile.TemporaryDirectory):
 
 
 class Executor:
-    def __init__(self, *, as_subcommand=as_subcommand) -> None:
+    def __init__(
+        self,
+        *,
+        gensym: t.Optional[t.Callable[[], str]] = None,
+        as_subcommand=as_subcommand,
+    ) -> None:
         self.actions: t.Dict[str, _Action] = {}
+        self.gensym = gensym or IDGenerator()
 
         self._tempdir: t.Optional[_TemporaryDirectory] = None
         self.dirpath: t.Optional[str] = None
@@ -72,9 +79,9 @@ class Executor:
         args = []
         for k, v in kwargs.items():
             if v is True:
-                args.append(f"--{k}")
+                args.append(f"--{k.replace('_', '-')}")
             else:
-                args.append(f"--{k}")
+                args.append(f"--{k.replace('_', '-')}")
                 args.append(str(v))  # support: str,int,float
 
         cmd = [sys.executable, filename, action_name, *args]
@@ -83,7 +90,9 @@ class Executor:
         self._processess.append(p)
         return p
 
-    def create_endpoint(self, *, uid: int) -> str:
+    def create_endpoint(self, *, uid: t.Optional[t.Union[int, str]] = None) -> str:
+        if uid is None:
+            uid = self.gensym()
         return pathlib.Path(self.dirpath) / f"worker.{uid}.fifo"
 
     def wait(self, *, check: bool = True) -> None:
