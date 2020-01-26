@@ -1,12 +1,13 @@
 from __future__ import annotations
 import typing as t
-from tinyrpc.exc import RPCError
-from tinyrpc.protocols import jsonrpc
-from tinyrpc.protocols import RPCRequest
+import logging
 
+logger = logging.getLogger(__name__)
 # TODO: type
 Serialization = t.Any
 Port = t.Any
+Message = t.Any
+T = t.TypeVar("T")
 
 
 class IPC:
@@ -23,39 +24,44 @@ class IPC:
         serialization: t.Optional[Serialization] = None,
         port: t.Optional[Port] = None,
     ):
-        self.serialization = serialization or jsonrpc.JSONRPCProtocol()
+        self.serialization = serialization
+        if serialization is None:
+            from minitask.serialization import jsonrpc
+
+            self.serialization = jsonrpc
         self.port = port
 
-    def connect(self, endpoint: str,) -> InternalReceiver:
+    def connect(self, endpoint: str, *, sensitive: bool = True) -> InternalReceiver:
         io = self.port.create_reader_port(endpoint)
         assert io is not None, io
-        return InternalReceiver(io, serialization=self.serialization, port=self.port)
+        return InternalReceiver(
+            io, serialization=self.serialization, port=self.port, sensitive=sensitive
+        )
 
-    def serve(self, endpoint: str,) -> InternalReceiver:
+    def serve(self, endpoint: str, *, sensitive: bool = True) -> InternalReceiver:
         io = self.port.create_writer_port(endpoint)
         assert io is not None, io
-        return InternalSender(io, serialization=self.serialization, port=self.port)
+        return InternalSender(
+            io, serialization=self.serialization, port=self.port, sensitive=sensitive
+        )
 
 
-class InternalReceiver:
-    def __init__(self, io: t.IO[bytes], *, serialization, port: Port) -> None:
+class InternalReceiver(t.Generic[T]):
+    def __init__(
+        self, io: t.IO[bytes], *, serialization, port: Port, sensitive: bool
+    ) -> None:
         self.io = io
         self.serialization = serialization
         self.port = port
+        self.sensitive = sensitive
 
-    def recv(self) -> RPCRequest:
+    def recv(self) -> T:
         msg = self.port.read(file=self.io)
         if not msg:
             return None
-        try:
-            return self.serialization.parse_request(msg)
-        except RPCError as e:
-            # xxx
-            e.unique_id = None
-            e.method = None
-            return e
+        return self.serialization.deserialize(msg)
 
-    def __iter__(self) -> t.Iterable[RPCRequest]:
+    def __iter__(self) -> t.Iterable[T]:
         while True:
             msg = self.recv()
             if msg is None:
@@ -67,42 +73,50 @@ class InternalReceiver:
 
     def __exit__(self, typ, val, tb):
         # TODO: exception is raised.
-
         if self.io is not None:
             self.io.close()
             self.io = None  # TODO: lock? (semaphore?)
 
+        if typ is not None:
+            logger.warn("error occured: %s", val, exc_info=True)
+        return not self.sensitive
+
 
 class InternalSender:
-    def __init__(self, io: t.IO[bytes], *, serialization, port: Port) -> None:
+    def __init__(
+        self, io: t.IO[bytes], *, serialization, port: Port, sensitive: bool
+    ) -> None:
         self.io = io
         self.serialization = serialization
         self.port = port
+        self.sensitive = sensitive
 
-    def send(
-        self,
-        method: str,
-        args: t.List[t.Any] = None,
-        kwargs: t.Dict[str, t.Any] = None,
-        one_way: bool = False,  # TODO: hmm
-    ):
-        req = self.serialization.create_request(
-            method, args=args, kwargs=kwargs, one_way=one_way
-        )
-        return self.port.write(req.serialize(), file=self.io)
+    def send(self, message: T) -> bytes:
+        b = self.serialization.serialize(message)
+        return self.port.write(b, file=self.io)
 
     def __enter__(self):
         return self
 
     def __exit__(self, typ, val, tb):
+        if self.io is None:
+            logger.warn("already closed, but exception is cached: %r", val)
+            return not self.sensitive
+
         # TODO: add error handling?
         if typ is not None:
-            if val is None:
-                val = type()
+            if issubclass(typ, BrokenPipeError):
+                logger.info("broken type: %r", val)
+                self.io = None
+                return not self.sensitive
 
-            req = self.serialization.create_request("").error_respond(val)
-            self.port.write(req.serialize(), file=self.io)
+            if val is None:
+                val = typ()
+            message = self.serialization.create_error_message(val)
+            b = self.serialization.serialize(message)
+            self.port.write(b, file=self.io)
 
         if self.io is not None:
             self.io.close()
             self.io = None  # TODO: lock?
+        return not self.sensitive

@@ -28,8 +28,7 @@ def producer(*, endpoint: str):
     pid = os.getpid()
     with ipc.serve(endpoint) as x:
         for i in range(5):
-            # msgpackrpc not support kwargs
-            x.send("say", args=["hello", [pid]])
+            x.send(x.serialization.create_message("say", args=["hello", [pid]]))
             time.sleep(0.1)
 
 
