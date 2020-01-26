@@ -1,32 +1,30 @@
-from __future__ import annotations
 import time
 from handofcats import as_subcommand
 import minitask
 from minitask.port import fake as port
 from minitask.executor.threaded import Executor
 
-env = Executor()
+executor = Executor()
 
 
 @as_subcommand
 def run():
-    with env:
-        pairs = []
+    with executor:
+        ps = []
         n = 2
 
         for uid in range(n):
-            endpoint = env.create_endpoint(uid=uid)
-            sp = env.spawn(producer, endpoint=endpoint)
-            cp = env.spawn(consumer, endpoint=endpoint)
-            pairs.append((sp, cp))
+            endpoint = executor.create_endpoint(uid=uid)
+            pp = executor.spawn(producer, endpoint=endpoint)
+            ps.append(pp)
+            cp = executor.spawn(consumer, endpoint=endpoint)
+            ps.append(cp)
 
-        # todo: fix
-        for sp, cp in pairs:
-            sp.wait()
-            cp.wait()
+        for p in ps:
+            p.wait()
 
 
-@env.register
+@executor.register
 def producer(*, endpoint: str):
     import os
 
@@ -39,7 +37,7 @@ def producer(*, endpoint: str):
             time.sleep(0.1)
 
 
-@env.register
+@executor.register
 def consumer(*, endpoint: str):
     import os
 
