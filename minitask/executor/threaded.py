@@ -1,7 +1,10 @@
 from __future__ import annotations
 import typing as t
 import threading
+import logging
 from functools import partial
+
+logger = logging.getLogger(__name__)
 
 
 class Executor:
@@ -21,6 +24,7 @@ class Executor:
 
     def spawn(self, fn, **kwargs) -> threading.Thread:
         assert fn in self.actions
+        logger.info("spawn: fn=%r kwargs=%r", fn, kwargs)
         action = partial(fn, **kwargs)
         th = threading.Thread(target=action, daemon=True)  # daemon = True?
         th.start()

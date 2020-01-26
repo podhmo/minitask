@@ -64,6 +64,7 @@ class Executor:
         )
         cmd = [sys.executable, filename, action_name, *args]
         p = subprocess.Popen(cmd)
+        logger.info("spawn pid=%d, %s", p.pid, " ".join(cmd))
         self._processess.append(p)
         return p
 
