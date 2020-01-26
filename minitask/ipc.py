@@ -1,62 +1,92 @@
 from __future__ import annotations
 import typing as t
+import typing_extensions as tx
 import logging
 
 logger = logging.getLogger(__name__)
-# TODO: type
-Serialization = t.Any
-Port = t.Any
-Message = t.Any
+
+
 T = t.TypeVar("T")
 
 
-class IPC:
-    # from tinyrpc.protocols import msgpackrpc
+class Communication(tx.Protocol[T]):
+    def create_writer_port(self, endpoint: str) -> t.IO[bytes]:
+        ...
 
-    # def __init__(
-    #     self, *, serialization=msgpackrpc.MSGPACKRPCProtocol(), port=port
-    # ):
+    def create_reader_port(self, endpoint: str) -> t.IO[bytes]:
+        ...
+
+    def write(self, body: bytes, *, file: t.IO[bytes]) -> None:
+        ...
+
+    def read(self, *, file: t.IO[bytes]) -> None:
+        ...
+
+
+class Serialization(tx.Protocol[T]):
+    def create_error_message(self, val: Exception) -> T:
+        ...
+
+    def serialize(self, val: T) -> bytes:
+        ...
+
+    def deserialize(self, b: bytes) -> T:
+        ...
+
+
+class IPC:
 
     # TODO: type
     def __init__(
         self,
         *,
         serialization: t.Optional[Serialization] = None,
-        port: t.Optional[Port] = None,
+        communication: t.Optional[Communication] = None,
     ):
         self.serialization = serialization
         if serialization is None:
             from minitask.serialization import jsonrpc
 
             self.serialization = jsonrpc
-        self.port = port
+        self.communication = communication
 
     def connect(self, endpoint: str, *, sensitive: bool = False) -> InternalReceiver:
-        io = self.port.create_reader_port(endpoint)
+        io = self.communication.create_reader_port(endpoint)
         assert io is not None, io
         return InternalReceiver(
-            io, serialization=self.serialization, port=self.port, sensitive=sensitive
+            io,
+            serialization=self.serialization,
+            communication=self.communication,
+            sensitive=sensitive,
         )
 
     def serve(self, endpoint: str, *, sensitive: bool = False) -> InternalReceiver:
-        io = self.port.create_writer_port(endpoint)
+        io = self.communication.create_writer_port(endpoint)
         assert io is not None, io
         return InternalSender(
-            io, serialization=self.serialization, port=self.port, sensitive=sensitive
+            io,
+            serialization=self.serialization,
+            communication=self.communication,
+            sensitive=sensitive,
         )
 
 
 class InternalReceiver(t.Generic[T]):
     def __init__(
-        self, io: t.IO[bytes], *, serialization, port: Port, sensitive: bool
+        self,
+        io: t.IO[bytes],
+        *,
+        serialization: Serialization,
+        communication: Communication,
+        sensitive: bool,
     ) -> None:
         self.io = io
         self.serialization = serialization
-        self.port = port
+        self.communication = communication
         self.sensitive = sensitive
 
     def recv(self) -> T:
-        msg = self.port.read(file=self.io)
+        msg = self.communication.read(file=self.io)
         if not msg:
             return None
         return self.serialization.deserialize(msg)
@@ -83,16 +113,21 @@ class InternalReceiver(t.Generic[T]):
 
 class InternalSender:
     def __init__(
-        self, io: t.IO[bytes], *, serialization, port: Port, sensitive: bool
+        self,
+        io: t.IO[bytes],
+        *,
+        serialization: Serialization,
+        communication: Communication,
+        sensitive: bool,
     ) -> None:
         self.io = io
         self.serialization = serialization
-        self.port = port
+        self.communication = communication
         self.sensitive = sensitive
 
     def send(self, message: T) -> bytes:
         b = self.serialization.serialize(message)
-        return self.port.write(b, file=self.io)
+        return self.communication.write(b, file=self.io)
 
     def __enter__(self):
         return self
@@ -112,7 +147,7 @@ class InternalSender:
                 val = typ()
             message = self.serialization.create_error_message(val)
             b = self.serialization.serialize(message)
-            self.port.write(b, file=self.io)
+            self.communication.write(b, file=self.io)
 
         if self.io is not None:
             self.io.close()

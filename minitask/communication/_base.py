@@ -4,7 +4,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def write(body: bytes, *, file: t.IO[bytes], encoding="utf-8"):
+def write(body: bytes, *, file: t.IO[bytes], encoding="utf-8") -> None:
     size = len(body)
 
     file.write(str(size).encode(encoding))

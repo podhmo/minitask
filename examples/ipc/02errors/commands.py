@@ -2,10 +2,10 @@ import time
 from handofcats import as_subcommand
 import minitask
 
-# from minitask.port import fake as port
+# from minitask.communication import fake as communication
 # from minitask.executor.threaded import Executor
 
-from minitask.port import namedpipe as port
+from minitask.communication import namedpipe as communication
 from minitask.executor.namedpipe import Executor
 
 
@@ -16,7 +16,7 @@ executor = Executor()
 def producer(*, endpoint: str, ng: bool = False):
     import os
 
-    ipc = minitask.IPC(port=port)
+    ipc = minitask.IPC(communication=communication)
     pid = os.getpid()
     with ipc.serve(endpoint, sensitive=False) as x:
         for i in range(5):
@@ -31,7 +31,7 @@ def consumer(*, endpoint: str, ng: bool = False):
     import os
     from tinyrpc.protocols import RPCErrorResponse
 
-    ipc = minitask.IPC(port=port)
+    ipc = minitask.IPC(communication=communication)
     pid = os.getpid()
     with ipc.connect(endpoint, sensitive=False) as x:
         for i, msg in enumerate(x):
