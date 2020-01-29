@@ -45,9 +45,9 @@ class IPC:
     ):
         self.serialization = serialization
         if serialization is None:
-            from minitask.serialization import jsonrpc
+            from minitask.serialization import raw
 
-            self.serialization = jsonrpc
+            self.serialization = raw
         self.communication = communication
 
     def connect(self, endpoint: str, *, sensitive: bool = False) -> InternalReceiver:

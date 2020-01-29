@@ -6,6 +6,7 @@ import minitask
 # from minitask.executor.threaded import Executor
 
 from minitask.communication import namedpipe as communication
+from minitask.serialization import jsonrpc as serialization
 from minitask.executor.namedpipe import Executor
 
 
@@ -16,7 +17,7 @@ executor = Executor()
 def producer(*, endpoint: str, ng: bool = False):
     import os
 
-    ipc = minitask.IPC(communication=communication)
+    ipc = minitask.IPC(communication=communication, serialization=serialization)
     pid = os.getpid()
     with ipc.serve(endpoint, sensitive=False) as x:
         for i in range(5):
@@ -31,7 +32,7 @@ def consumer(*, endpoint: str, ng: bool = False):
     import os
     from tinyrpc.protocols import RPCErrorResponse
 
-    ipc = minitask.IPC(communication=communication)
+    ipc = minitask.IPC(communication=communication, serialization=serialization)
     pid = os.getpid()
     with ipc.connect(endpoint, sensitive=False) as x:
         for i, msg in enumerate(x):
