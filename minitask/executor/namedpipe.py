@@ -37,7 +37,7 @@ class Executor:
         self._tempdir: t.Optional[_TemporaryDirectory] = None
         self.dirpath: t.Optional[str] = None
 
-        self._processess: t.List[subprocess.Process] = []
+        self._processes: t.List[subprocess.Process] = []
 
         # TODO: omit
         self._as_subcommand = as_subcommand
@@ -87,7 +87,7 @@ class Executor:
         cmd = [sys.executable, filename, action_name, *args]
         p = subprocess.Popen(cmd)
         logger.info("spawn pid=%d, %s", p.pid, " ".join(cmd))
-        self._processess.append(p)
+        self._processes.append(p)
         return p
 
     def create_endpoint(self, *, uid: t.Optional[t.Union[int, str]] = None) -> str:
@@ -96,7 +96,7 @@ class Executor:
         return pathlib.Path(self.dirpath) / f"worker.{uid}.fifo"
 
     def wait(self, *, check: bool = True) -> None:
-        for p in self._processess:
+        for p in self._processes:
             p.wait()
             if check:
                 cp = subprocess.CompletedProcess(
