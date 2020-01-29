@@ -43,11 +43,15 @@ class IPC:
         serialization: t.Optional[Serialization] = None,
         communication: t.Optional[Communication] = None,
     ):
-        self.serialization = serialization
         if serialization is None:
             from minitask.serialization import raw
 
-            self.serialization = raw
+            serialization = raw
+        self.serialization = serialization
+        if communication is None:
+            from minitask.communication import namedpipe
+
+            communication = namedpipe
         self.communication = communication
 
     def connect(self, endpoint: str, *, sensitive: bool = False) -> InternalReceiver:
