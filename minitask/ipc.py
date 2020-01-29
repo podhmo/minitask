@@ -92,11 +92,30 @@ class InternalReceiver(t.Generic[T]):
         return self.serialization.deserialize(msg)
 
     def __iter__(self) -> t.Iterable[T]:
+        import queue
+        import threading
+
+        q = queue.Queue()
+
+        def _peek():
+            while True:
+                item = self.recv()
+                if item is None:
+                    q.put(None)  # finish
+                    break
+                q.put(item)
+
+        th = threading.Thread(target=_peek)
+        th.start()
+
         while True:
-            msg = self.recv()
-            if msg is None:
+            item = q.get()
+            if item is None:
+                q.task_done()
                 break
-            yield msg
+            yield item
+            q.task_done()
+        q.join()
 
     def __enter__(self):
         return self
