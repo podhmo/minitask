@@ -162,6 +162,8 @@ class InternalSender:
                 self.io = None
                 return not self.sensitive
 
+            logger.warn("error occured: %s", val, exc_info=True)
+
             if val is None:
                 val = typ()
             message = self.serialization.create_error_message(val)
