@@ -46,3 +46,17 @@ class _IOAdapter:
 
     def close(self):
         self.q.put_nowait(None)  # auto finalize?
+
+
+# use inmemory buffer?
+def create_reader_buffer(
+    recv: t.Callable[[], t.Any]
+) -> t.Tuple[t.Iterable[t.Any], t.Optional[t.Callable[[], None]]]:
+    def iterate():
+        while True:
+            item = recv()
+            if item is None:
+                break
+            yield item
+
+    return iterate(), None

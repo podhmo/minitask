@@ -16,6 +16,11 @@ class Communication(tx.Protocol[T]):
     def create_reader_port(self, endpoint: str) -> t.IO[bytes]:
         ...
 
+    def create_reader_buffer(
+        self, recv: t.Callable[[], T]
+    ) -> t.Tuple[t.Iterable[T], t.Optional[t.Callable[[], None]]]:
+        ...
+
     def write(self, body: bytes, *, file: t.IO[bytes]) -> None:
         ...
 
@@ -88,6 +93,8 @@ class InternalReceiver(t.Generic[T]):
         self.serialization = serialization
         self.communication = communication
         self.sensitive = sensitive
+        self._buffer: t.Optional[t.Iterable[T]] = None
+        self._teardown: t.Optional[t.Callable[[], None]] = None
 
     def recv(self) -> T:
         msg = self.communication.read(file=self.io)
@@ -96,33 +103,16 @@ class InternalReceiver(t.Generic[T]):
         return self.serialization.deserialize(msg)
 
     def __iter__(self) -> t.Iterable[T]:
-        import queue
-        import threading
-
-        q = queue.Queue()
-
-        def _peek():
-            while True:
-                item = self.recv()
-                if item is None:
-                    q.put(None)  # finish
-                    break
-                q.put(item)
-
-        th = threading.Thread(target=_peek)
-        th.start()
-
-        while True:
-            item = q.get()
-            if item is None:
-                q.task_done()
-                break
-            yield item
-            q.task_done()
-        q.join()
+        self._buffer, teardown = self.communication.create_reader_buffer(self.recv)
+        if teardown is not None:
+            self._teardown = teardown
+        return self._buffer
 
     def __enter__(self):
         return self
+
+    def _need_save_exception(self, typ: t.Type[t.Any]) -> bool:
+        return issubclass(typ, KeyboardInterrupt)
 
     def __exit__(self, typ, val, tb):
         if self.io is not None:
@@ -130,7 +120,12 @@ class InternalReceiver(t.Generic[T]):
             self.io = None  # TODO: lock? (semaphore?)
 
         if typ is not None:
-            logger.warn("error occured: %s", val, exc_info=True)
+            # e.g. Ctrl+c
+            if self._need_save_exception(typ):
+                if self._teardown is not None:
+                    self._teardown()
+            else:
+                logger.warn("error occured: %s", val, exc_info=True)
         return not self.sensitive
 
 

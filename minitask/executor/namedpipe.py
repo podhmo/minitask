@@ -97,9 +97,12 @@ class Executor:
 
     def wait(self, *, check: bool = True) -> None:
         for p in self._processes:
-            p.wait()
-            if check:
-                cp = subprocess.CompletedProcess(
-                    p.args, p.returncode, stdout=p.stdout, stderr=p.stderr
-                )
-                cp.check_returncode()
+            try:
+                p.wait()
+                if check:
+                    cp = subprocess.CompletedProcess(
+                        p.args, p.returncode, stdout=p.stdout, stderr=p.stderr
+                    )
+                    cp.check_returncode()
+            except KeyboardInterrupt:
+                logger.info("keybord interrupted, pid=%d", p.pid)

@@ -3,7 +3,7 @@ import os
 import time
 import logging
 from ._base import read, write  # noqa 410
-
+from ._buffer import InmemoryQueueBuffer
 
 logger = logging.getLogger(__name__)
 
@@ -38,3 +38,12 @@ def create_reader_port(
             logger.debug("%r is not found, waiting, retry=%d", endpoint, i)
             time.sleep(waittime)
     raise exc
+
+
+def create_reader_buffer(
+    recv: t.Callable[[], t.Any]
+) -> t.Tuple[t.Iterable[t.Any], t.Optional[t.Callable[[], None]]]:
+    buf = InmemoryQueueBuffer(recv)
+    buf.load()
+    teardown = buf.save
+    return iter(buf), teardown
