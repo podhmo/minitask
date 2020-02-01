@@ -17,22 +17,10 @@ class ThreadingWorkerManager:
         self.threads = []
 
     def spawn(self, target, *, endpoint):
+        from functools import partial
         import threading
 
-        if format_protocol is None:
-            format_protocol = PickleFormat
-        if transport is None:
-            from minitask.transport import namedpipe
-
-            transport = namedpipe
-
-        def worker():
-
-            with namedpipe.create_reader_port(endpoint) as rf:
-                q = Q(QueueLike(rf), format_protocol=format_protocol())
-                target(q)
-
-        th = threading.Thread(target=worker)
+        th = threading.Thread(target=partial(target, self, endpoint))
         self.threads.append(th)
         th.start()
         return th
@@ -49,6 +37,27 @@ class ThreadingWorkerManager:
 
     def __exit__(self, exc, value, tb):
         pass
+
+    def create_endpoint(
+        self, uid: t.Optional[t.Union[int, str]] = None,
+    ) -> pathlib.Path:
+        if uid is None:
+            uid = self._gensym()
+        return uid
+
+    @contextlib.contextmanager
+    def open_writer_queue(self, endpoint: str, *, force: bool = False) -> t.Iterable[Q]:
+        from minitask.transport import fake
+
+        q = fake.create_writer_port(endpoint).q
+        yield Q(q)
+
+    @contextlib.contextmanager
+    def open_reader_queue(self, endpoint: str) -> t.Iterable[Q]:
+        from minitask.transport import fake
+
+        q = fake.create_reader_port(endpoint).q
+        yield Q(q)
 
 
 class SubprocessWorkerManager(contextlib.ExitStack):
