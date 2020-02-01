@@ -73,23 +73,3 @@ def consume(q: Q[T]) -> t.Iterator[T]:
             break
         yield m.body
         task_done()
-
-
-from minitask.transport import namedpipe
-
-
-class QueueLike:
-    def __init__(self, port) -> None:
-        self.port = port
-
-    def put(self, b: bytes):
-        namedpipe.write(b, file=self.port)
-
-    def get(self) -> bytes:
-        b = namedpipe.read(file=self.port)
-        if not b:
-            return None
-        return b
-
-    def task_done(self):
-        pass  # hmm

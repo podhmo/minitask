@@ -3,46 +3,14 @@ import os
 import time
 import logging
 import pathlib
-import tempfile
-import contextlib
-from minitask.langhelpers import reify
 from ._base import read, write  # noqa 410
 from ._buffer import InmemoryQueueBuffer
-from ._gensym import IDGenerator
 
 logger = logging.getLogger(__name__)
 
 
-class ContextStack(contextlib.ExitStack):
-    @reify
-    def tempdir(self):
-        tempdir = tempfile.TemporaryDirectory()
-        logger.info("create tempdir %s", tempdir.name)
-        return tempdir
-
-    @reify
-    def _gensym(self):
-        return IDGenerator()
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc, value, tb):
-        logger.info("remove tempdir %s", self.tempdir.name)
-        return self.tempdir.__exit__(exc, value, tb)
-
-    def create_endpoint(
-        self, uid: t.Optional[t.Union[int, str]] = None,
-    ) -> pathlib.Path:
-        if uid is None:
-            uid = self._gensym()
-        return pathlib.Path(self.tempdir.name) / f"worker.{uid}.fifo"
-
-    def serve(self, endpoint: str, *, force: bool = False):
-        return create_writer_port(endpoint, force=force)
-
-    def connect(self, endpoint: str):
-        return create_reader_port(endpoint)
+def create_endpoint(uid: t.Union[int, str], *, dirpath: str) -> pathlib.Path:
+    return pathlib.Path(dirpath) / f"worker.{uid}.fifo"
 
 
 def create_writer_port(

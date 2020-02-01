@@ -1,43 +1,35 @@
 import time
 from handofcats import as_command
-from minitask.q import (
-    consume,
-    Q,
-    QueueLike,
-    PickleFormat,
-)
-from minitask.worker import SubprocessExecutor  # TODO: rename
-from minitask.transport.namedpipe import ContextStack
+from minitask.worker import SubprocessWorkerManager
 
 
-def consumer(q: Q):
+def consumer(m: SubprocessWorkerManager, endpoint: str):
     import os
+    from minitask.q import consume
 
     print(os.getpid(), "!")
-    for item in consume(q):
-        print(os.getpid(), "<-", item)
+    with m.open_reader_queue(endpoint) as q:
+        for item in consume(q):
+            print(os.getpid(), "<-", item)
 
 
 @as_command
 def run():
-    with ContextStack() as s:
-        endpoint = s.create_endpoint("x")
+    with SubprocessWorkerManager() as m:
+        endpoint = m.create_endpoint("x")
 
-        ex = SubprocessExecutor()
-        ex.spawn(consumer, endpoint=endpoint)
-        ex.spawn(consumer, endpoint=endpoint)
-        ex.spawn(consumer, endpoint=endpoint)
-        ex.spawn(consumer, endpoint=endpoint)
-        ex.spawn(consumer, endpoint=endpoint)
+        m.spawn(consumer, endpoint=endpoint)
+        m.spawn(consumer, endpoint=endpoint)
+        m.spawn(consumer, endpoint=endpoint)
+        m.spawn(consumer, endpoint=endpoint)
+        m.spawn(consumer, endpoint=endpoint)
 
-        with s.serve(endpoint, force=True) as wf:
-            q = Q(QueueLike(wf), format_protocol=PickleFormat())
+        with m.open_writer_queue(endpoint, force=True) as q:
             for i in range(20):
                 q.put(i)
                 time.sleep(0.01)
-
-            for _ in range(len(ex)):
+            for _ in range(len(m)):
                 q.put(None)
 
-        ex.wait()
+        m.wait()
         print("ok")
