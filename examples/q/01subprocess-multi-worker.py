@@ -25,13 +25,17 @@ def run():
     ex = SubprocessExecutor()
 
     ex.spawn(consumer, endpoint=endpoint)
+    ex.spawn(consumer, endpoint=endpoint)
+    ex.spawn(consumer, endpoint=endpoint)
+    ex.spawn(consumer, endpoint=endpoint)
+
     with open_port(endpoint, "w") as wf:
         q = Q(QueueLike(wf), format_protocol=PickleFormat())
         for i in range(20):
             q.put(i)
             time.sleep(0.01)
 
-        q.put(None)
-
+        for _ in range(len(ex)):
+            q.put(None)
     ex.wait()
     print("ok")

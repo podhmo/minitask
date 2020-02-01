@@ -27,12 +27,12 @@ class FormatProtocol(tx.Protocol[K]):
 class PickleFormat(FormatProtocol[bytes]):
     def encode(self, v: t.Any) -> bytes:
         b = pickle.dumps(v)
-        logger.debug("encode: %r -> %r", v, b)
+        # logger.debug("encode: %r -> %r", v, b)
         return b
 
     def decode(self, b: bytes) -> t.Any:
         v = pickle.loads(b)
-        logger.debug("decode: %r <- %r", v, b)
+        # logger.debug("decode: %r <- %r", v, b)
         return v
 
 
@@ -51,10 +51,12 @@ class Q(t.Generic[T]):
 
     def get(self) -> t.Tuple[t.Optional[Message[T]], t.Callable[..., None]]:
         val = self.q.get()
-        if self.p is not None:
-            val = self.p.decode(val)
         if val is None:
             return None, self.q.task_done
+        if self.p is not None:
+            val = self.p.decode(val)
+            if val is None:
+                return None, self.q.task_done
         return Message(val), self.q.task_done
 
     def join(self) -> None:
@@ -106,6 +108,9 @@ class ThreadingExecutor:
         self.threads.append(th)
         th.start()
 
+    def __len__(self):
+        return len(self.threads)
+
     def wait(self):
         for th in self.threads:
             th.join()
@@ -147,6 +152,9 @@ class SubprocessExecutor:
         p = subprocess.Popen(cmd)
         self.processes.append(p)
         return p
+
+    def __len__(self):
+        return len(self.processes)
 
     def wait(self):
         for p in self.processes:
