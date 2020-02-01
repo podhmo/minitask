@@ -17,11 +17,12 @@ class ThreadingWorkerManager:
     def __init__(self):
         self.threads = []
 
-    def spawn(self, target, *, endpoint):
+    def spawn(self, fn, *, endpoint):
         from functools import partial
         import threading
 
-        th = threading.Thread(target=partial(target, self, endpoint))
+        logger.info("spawn fn=%r endpoint=%r", full_modulename(fn), endpoint)
+        th = threading.Thread(target=partial(fn, self, endpoint))
         self.threads.append(th)
         th.start()
         return th
@@ -80,13 +81,14 @@ class SubprocessWorkerManager(contextlib.ExitStack):
             "--endpoint",
             endpoint,
             "--manager",
-            fullname(self),
+            full_filename(self),
             "--handler",
-            fullname(target),
+            full_filename(target),
         ]
         if self.dirpath is not None:
             cmd.extend(["--dirpath", self.dirpath])
 
+        logger.info("spawn cmd=%s", ", ".join(map(str, cmd)))
         p = subprocess.Popen(cmd)
         self.processes.append(p)
         return p
@@ -163,7 +165,13 @@ class QueueLike:
         pass  # hmm
 
 
-def fullname(ob: t.Any) -> str:
+def full_modulename(ob: t.Any) -> str:
+    if not hasattr(ob, "__name__"):
+        ob = ob.__class__
+    return f"{ob.__module__}:{ob.__name__}"
+
+
+def full_filename(ob: t.Any) -> str:
     if not hasattr(ob, "__name__"):
         ob = ob.__class__
     return f"{sys.modules[ob.__module__].__file__}:{ob.__name__}"
