@@ -29,4 +29,17 @@ def reader():
         print(msg.decode("utf-8"))
 
 
+@as_subcommand
+def worker(*, endpoint: str, format_protocol: str, handler: str, communication: str):
+    from magicalimport import import_symbol, import_module
+    from minitask.q import Q, QueueLike
+
+    handler = import_symbol(handler, cwd=True)
+    format_protocol = import_symbol(format_protocol, cwd=True)
+    communication = import_module(communication, cwd=True)
+    with communication.create_reader_port(endpoint) as rf:
+        q = Q(QueueLike(rf), format_protocol=format_protocol())
+        handler(q)
+
+
 as_subcommand.run()
