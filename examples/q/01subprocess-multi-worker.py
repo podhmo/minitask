@@ -3,12 +3,12 @@ import time
 from handofcats import as_command
 from minitask.q import (
     SubprocessExecutor,
-    open_port,
     consume,
     Q,
     QueueLike,
     PickleFormat,
 )
+from minitask.communication import namedpipe
 
 
 def consumer(q: Q):
@@ -21,7 +21,7 @@ def consumer(q: Q):
 
 @as_command
 def run():
-    endpoint = str((pathlib.Path(__file__).parent / "x.fifo").absolute())
+    endpoint = namedpipe.create_endpoint("x")
     ex = SubprocessExecutor()
 
     ex.spawn(consumer, endpoint=endpoint)
@@ -29,7 +29,7 @@ def run():
     ex.spawn(consumer, endpoint=endpoint)
     ex.spawn(consumer, endpoint=endpoint)
 
-    with open_port(endpoint, "w") as wf:
+    with namedpipe.create_writer_port(endpoint, force=True) as wf:
         q = Q(QueueLike(wf), format_protocol=PickleFormat())
         for i in range(20):
             q.put(i)

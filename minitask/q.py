@@ -101,12 +101,26 @@ class ThreadingExecutor:
     def __init__(self):
         self.threads = []
 
-    def spawn(self, target):
+    def spawn(self, target, *, endpoint: str, format_protocol=None, communication=None):
         import threading
 
-        th = threading.Thread(target=target)
+        if format_protocol is None:
+            format_protocol = PickleFormat
+        if communication is None:
+            from minitask.communication import namedpipe
+
+            communication = namedpipe
+
+        def worker():
+
+            with namedpipe.create_reader_port(endpoint) as rf:
+                q = Q(QueueLike(rf), format_protocol=format_protocol())
+                target(q)
+
+        th = threading.Thread(target=worker)
         self.threads.append(th)
         th.start()
+        return th
 
     def __len__(self):
         return len(self.threads)
@@ -159,14 +173,3 @@ class SubprocessExecutor:
     def wait(self):
         for p in self.processes:
             p.wait()
-
-
-def open_port(endpoint: str, mode):
-    import pathlib
-
-    if mode == "r":
-        return namedpipe.create_reader_port(endpoint)
-    path = pathlib.Path(endpoint)
-    if path.exists():
-        path.unlink(missing_ok=True)
-    return namedpipe.create_writer_port(str(path))
