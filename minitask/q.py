@@ -1,5 +1,6 @@
 import typing as t
 import typing_extensions as tx
+import sys
 import dataclasses
 import pickle
 import logging
@@ -88,3 +89,76 @@ class QueueLike:
 
     def task_done(self):
         pass  # hmm
+
+
+def fullname(ob: t.Any) -> str:
+    return f"{sys.modules[ob.__module__].__file__}:{ob.__name__}"
+
+
+class ThreadingExecutor:
+    def __init__(self):
+        self.threads = []
+
+    def spawn(self, target):
+        import threading
+
+        th = threading.Thread(target=target)
+        self.threads.append(th)
+        th.start()
+
+    def wait(self):
+        for th in self.threads:
+            th.join()
+
+
+class SubprocessExecutor:
+    def __init__(self):
+        self.processes = []
+
+    def spawn(self, target, *, endpoint, format_protocol=None, communication=None):
+        import sys
+        import subprocess
+
+        if format_protocol is not None:
+            format_protocol = fullname(format_protocol)
+        else:
+            format_protocol = "minitask.q:PickleFormat"
+
+        if communication is not None:
+            communication = fullname(communication)
+        else:
+            communication = "minitask.communication.namedpipe"
+
+        cmd = [
+            sys.executable,
+            "-m",
+            "minitask.tool",
+            "worker",
+            "--endpoint",
+            endpoint,
+            "--format-protocol",
+            format_protocol,
+            "--handler",
+            fullname(target),
+            "--communication",
+            communication,
+        ]
+
+        p = subprocess.Popen(cmd)
+        self.processes.append(p)
+        return p
+
+    def wait(self):
+        for p in self.processes:
+            p.wait()
+
+
+def open_port(endpoint: str, mode):
+    import pathlib
+
+    if mode == "r":
+        return namedpipe.create_reader_port(endpoint)
+    path = pathlib.Path(endpoint)
+    if path.exists():
+        path.unlink(missing_ok=True)
+    return namedpipe.create_writer_port(str(path))
