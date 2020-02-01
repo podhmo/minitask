@@ -28,6 +28,4 @@ def run():
             endpoint = m.create_endpoint(str(i))
             m.spawn(consumer, endpoint=endpoint)
             m.spawn(producer, endpoint=endpoint)
-
-        m.wait()
-        print("ok")
+    print("ok")

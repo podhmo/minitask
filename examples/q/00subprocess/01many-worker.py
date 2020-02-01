@@ -23,13 +23,12 @@ def run():
         m.spawn(consumer, endpoint=endpoint)
         m.spawn(consumer, endpoint=endpoint)
         m.spawn(consumer, endpoint=endpoint)
+        N = len(m)
 
         with m.open_writer_queue(endpoint, force=True) as q:
             for i in range(20):
                 q.put(i)
                 time.sleep(0.01)
-            for _ in range(len(m)):
+            for _ in range(N):
                 q.put(None)
-
-        m.wait()
-        print("ok")
+    print("ok")

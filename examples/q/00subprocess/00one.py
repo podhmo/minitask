@@ -24,6 +24,4 @@ def run():
                 q.put(i)
                 time.sleep(0.01)
             q.put(None)
-
-        m.wait()
-        print("ok")
+    print("ok")

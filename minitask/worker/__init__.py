@@ -16,7 +16,7 @@ class ThreadingWorkerManager:
     def __init__(self):
         self.threads = []
 
-    def spawn(self, target, *, endpoint: str, format_protocol=None, transport=None):
+    def spawn(self, target, *, endpoint):
         import threading
 
         if format_protocol is None:
@@ -43,6 +43,12 @@ class ThreadingWorkerManager:
     def wait(self):
         for th in self.threads:
             th.join()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc, value, tb):
+        pass
 
 
 class SubprocessWorkerManager(contextlib.ExitStack):
@@ -97,6 +103,7 @@ class SubprocessWorkerManager(contextlib.ExitStack):
         return self
 
     def __exit__(self, exc, value, tb):
+        self.wait()
         logger.info("remove tempdir %s", self.tempdir.name)
         return self.tempdir.__exit__(exc, value, tb)
 
@@ -123,7 +130,10 @@ class QueueLike:
         self.port = port
 
     def put(self, b: bytes):
+        # import fcntl
+        # fcntl.flock(self.port.fileno(), fcntl.LOCK_EX)
         namedpipe.write(b, file=self.port)
+        # fcntl.flock(self.port.fileno(), fcntl.LOCK_UN)
 
     def get(self) -> bytes:
         b = namedpipe.read(file=self.port)
