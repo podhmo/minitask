@@ -2,6 +2,8 @@ from __future__ import annotations
 import typing as t
 import typing_extensions as tx
 import logging
+from .q import FormatProtocol
+from .q import PickleFormat  # TODO: omit
 
 logger = logging.getLogger(__name__)
 
@@ -28,31 +30,18 @@ class Communication(tx.Protocol[T]):
         ...
 
 
-class Serialization(tx.Protocol[T]):
-    def create_error_message(self, val: Exception) -> T:
-        ...
-
-    def serialize(self, val: T) -> bytes:
-        ...
-
-    def deserialize(self, b: bytes) -> T:
-        ...
-
-
 class IPC:
 
     # TODO: type
     def __init__(
         self,
         *,
-        serialization: t.Optional[Serialization] = None,
+        format_protocol: t.Optional[FormatProtocol[bytes]] = None,
         communication: t.Optional[Communication] = None,
     ):
-        if serialization is None:
-            from minitask.serialization import raw
-
-            serialization = raw
-        self.serialization = serialization
+        if format_protocol is None:
+            format_protocol = PickleFormat()
+        self.format_protocol = format_protocol
         if communication is None:
             from minitask.communication import namedpipe
 
@@ -64,7 +53,7 @@ class IPC:
         assert io is not None, io
         return InternalReceiver(
             io,
-            serialization=self.serialization,
+            format_protocol=self.format_protocol,
             communication=self.communication,
             sensitive=sensitive,
         )
@@ -74,7 +63,7 @@ class IPC:
         assert io is not None, io
         return InternalSender(
             io,
-            serialization=self.serialization,
+            format_protocol=self.format_protocol,
             communication=self.communication,
             sensitive=sensitive,
         )
@@ -85,12 +74,12 @@ class InternalReceiver(t.Generic[T]):
         self,
         io: t.IO[bytes],
         *,
-        serialization: Serialization,
+        format_protocol: FormatProtocol[bytes],
         communication: Communication,
         sensitive: bool,
     ) -> None:
         self.io = io
-        self.serialization = serialization
+        self.format_protocol = format_protocol
         self.communication = communication
         self.sensitive = sensitive
         self._buffer: t.Optional[t.Iterable[T]] = None
@@ -100,7 +89,7 @@ class InternalReceiver(t.Generic[T]):
         msg = self.communication.read(file=self.io)
         if not msg:
             return None
-        return self.serialization.deserialize(msg)
+        return self.format_protocol.decode(msg)
 
     def __iter__(self) -> t.Iterable[T]:
         self._buffer, teardown = self.communication.create_reader_buffer(self.recv)
@@ -134,17 +123,17 @@ class InternalSender:
         self,
         io: t.IO[bytes],
         *,
-        serialization: Serialization,
+        format_protocol: FormatProtocol[bytes],
         communication: Communication,
         sensitive: bool,
     ) -> None:
         self.io = io
-        self.serialization = serialization
+        self.format_protocol = format_protocol
         self.communication = communication
         self.sensitive = sensitive
 
     def send(self, message: T) -> bytes:
-        b = self.serialization.serialize(message)
+        b = self.format_protocol.encode(message)
         return self.communication.write(b, file=self.io)
 
     def __enter__(self):
@@ -165,8 +154,7 @@ class InternalSender:
 
             if val is None:
                 val = typ()
-            message = self.serialization.create_error_message(val)
-            b = self.serialization.serialize(message)
+            b = self.format_protocol.encode(val)
             self.communication.write(b, file=self.io)
 
         if self.io is not None:

@@ -1,7 +1,6 @@
 import time
 from handofcats import as_subcommand
 import minitask
-from minitask.serialization import jsonrpc as serialization
 from minitask.communication import namedpipe as communication
 from minitask.executor.namedpipe import Executor
 
@@ -25,11 +24,11 @@ def run():
 def producer(*, endpoint: str):
     import os
 
-    ipc = minitask.IPC(communication=communication, serialization=serialization)
+    ipc = minitask.IPC(communication=communication)
     pid = os.getpid()
     with ipc.serve(endpoint) as x:
         for i in range(5):
-            x.send(x.serialization.create_message("say", args=["hello", [pid]]))
+            x.send({"method": "say", "message": "hello", "pid": pid})
             time.sleep(0.1)
 
 
@@ -37,11 +36,11 @@ def producer(*, endpoint: str):
 def consumer(*, endpoint: str):
     import os
 
-    ipc = minitask.IPC(communication=communication, serialization=serialization)
+    ipc = minitask.IPC(communication=communication)
     pid = os.getpid()
     with ipc.connect(endpoint) as x:
         for msg in x:
-            print("got", msg.unique_id, msg.method, msg.args, "with", pid)
+            print("got", msg, "with", pid)
 
 
 as_subcommand.run()
