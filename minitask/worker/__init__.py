@@ -4,6 +4,7 @@ import logging
 import pathlib
 import tempfile
 import contextlib
+import subprocess
 from minitask.langhelpers import reify
 from minitask.transport import namedpipe
 from ._gensym import IDGenerator
@@ -93,9 +94,17 @@ class SubprocessWorkerManager(contextlib.ExitStack):
     def __len__(self):
         return len(self.processes)
 
-    def wait(self):
+    def wait(self, *, check: bool = True) -> None:
         for p in self.processes:
-            p.wait()
+            try:
+                p.wait()
+                if check:
+                    cp = subprocess.CompletedProcess(
+                        p.args, p.returncode, stdout=p.stdout, stderr=p.stderr
+                    )
+                    cp.check_returncode()
+            except KeyboardInterrupt:
+                logger.info("keybord interrupted, pid=%d", p.pid)
 
     @reify
     def tempdir(self):
