@@ -1,4 +1,3 @@
-import pathlib
 import time
 from handofcats import as_command
 from minitask.q import (
@@ -8,7 +7,7 @@ from minitask.q import (
     QueueLike,
     PickleFormat,
 )
-from minitask.communication import namedpipe
+from minitask.transport.namedpipe import ContextStack
 
 
 def consumer(q: Q):
@@ -21,21 +20,24 @@ def consumer(q: Q):
 
 @as_command
 def run():
-    endpoint = namedpipe.create_endpoint("x")
-    ex = SubprocessExecutor()
+    with ContextStack() as s:
+        endpoint = s.create_endpoint("x")
 
-    ex.spawn(consumer, endpoint=endpoint)
-    ex.spawn(consumer, endpoint=endpoint)
-    ex.spawn(consumer, endpoint=endpoint)
-    ex.spawn(consumer, endpoint=endpoint)
+        ex = SubprocessExecutor()
+        ex.spawn(consumer, endpoint=endpoint)
+        ex.spawn(consumer, endpoint=endpoint)
+        ex.spawn(consumer, endpoint=endpoint)
+        ex.spawn(consumer, endpoint=endpoint)
+        ex.spawn(consumer, endpoint=endpoint)
 
-    with namedpipe.create_writer_port(endpoint, force=True) as wf:
-        q = Q(QueueLike(wf), format_protocol=PickleFormat())
-        for i in range(20):
-            q.put(i)
-            time.sleep(0.01)
+        with s.serve(endpoint, force=True) as wf:
+            q = Q(QueueLike(wf), format_protocol=PickleFormat())
+            for i in range(20):
+                q.put(i)
+                time.sleep(0.01)
 
-        for _ in range(len(ex)):
-            q.put(None)
-    ex.wait()
-    print("ok")
+            for _ in range(len(ex)):
+                q.put(None)
+
+        ex.wait()
+        print("ok")

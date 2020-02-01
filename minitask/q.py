@@ -73,7 +73,7 @@ def consume(q: Q[T]) -> t.Iterator[T]:
         task_done()
 
 
-from minitask.communication import namedpipe
+from minitask.transport import namedpipe
 
 
 class QueueLike:
@@ -101,15 +101,15 @@ class ThreadingExecutor:
     def __init__(self):
         self.threads = []
 
-    def spawn(self, target, *, endpoint: str, format_protocol=None, communication=None):
+    def spawn(self, target, *, endpoint: str, format_protocol=None, transport=None):
         import threading
 
         if format_protocol is None:
             format_protocol = PickleFormat
-        if communication is None:
-            from minitask.communication import namedpipe
+        if transport is None:
+            from minitask.transport import namedpipe
 
-            communication = namedpipe
+            transport = namedpipe
 
         def worker():
 
@@ -134,7 +134,7 @@ class SubprocessExecutor:
     def __init__(self):
         self.processes = []
 
-    def spawn(self, target, *, endpoint, format_protocol=None, communication=None):
+    def spawn(self, target, *, endpoint, format_protocol=None, transport=None):
         import sys
         import subprocess
 
@@ -143,10 +143,10 @@ class SubprocessExecutor:
         else:
             format_protocol = "minitask.q:PickleFormat"
 
-        if communication is not None:
-            communication = fullname(communication)
+        if transport is not None:
+            transport = fullname(transport)
         else:
-            communication = "minitask.communication.namedpipe"
+            transport = "minitask.transport.namedpipe"
 
         cmd = [
             sys.executable,
@@ -159,8 +159,8 @@ class SubprocessExecutor:
             format_protocol,
             "--handler",
             fullname(target),
-            "--communication",
-            communication,
+            "--transport",
+            transport,
         ]
 
         p = subprocess.Popen(cmd)

@@ -3,5 +3,4 @@
 01:
 	LOGGING_LEVEL=INFO DEBUG=1 python $(shell echo $@*.py)
 02:
-	# LOGGING_LEVEL=INFO DEBUG=1 python $(shell echo $@*.py)
-	DEBUG=1 python $(shell echo $@*.py)
+	LOGGING_LEVEL=INFO DEBUG=1 python $(shell echo $@*.py)
