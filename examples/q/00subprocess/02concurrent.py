@@ -1,13 +1,12 @@
 import time
-import contextlib
 from handofcats import as_command
 from minitask.q import (
-    SubprocessExecutor,
     consume,
     Q,
     QueueLike,
     PickleFormat,
 )
+from minitask.worker import SubprocessExecutor  # TODO: rename
 from minitask.transport.namedpipe import ContextStack
 
 

@@ -1,9 +1,10 @@
+from __future__ import annotations
 import typing as t
 import typing_extensions as tx
-import sys
 import dataclasses
 import pickle
 import logging
+
 
 logger = logging.getLogger(__name__)
 K = t.TypeVar("K")
@@ -43,21 +44,22 @@ class Q(t.Generic[T]):
     def __init__(self, q: t.Any, format_protocol: t.Optional[FormatProtocol[K]] = None):
         self.q = q
         self.p = format_protocol
+        self.latest = None
 
-    def put(self, val: t.Any) -> None:
+    def put(self, val: T, **metadata: t.Any) -> None:
+        m = Message(val, metadata=metadata)
         if self.p is not None:
-            val = self.p.encode(val)
-        self.q.put(val)
+            m = self.p.encode(m)  # e.g. pickle.dumps
+        self.q.put(m)
 
-    def get(self) -> t.Tuple[t.Optional[Message[T]], t.Callable[..., None]]:
-        val = self.q.get()
-        if val is None:
-            return None, self.q.task_done
-        if self.p is not None:
-            val = self.p.decode(val)
-            if val is None:
-                return None, self.q.task_done
-        return Message(val), self.q.task_done
+    def get(self) -> t.Tuple[Message[t.Optional[T]], t.Callable[..., None]]:
+        m = self.q.get()
+        if m is None:
+            m = Message(None)  # xxx
+        elif self.p is not None:
+            m = self.p.decode(m)  # e.g. pickle.loads
+        self.latest = m
+        return m, self.q.task_done
 
     def join(self) -> None:
         self.q.join()
@@ -66,7 +68,7 @@ class Q(t.Generic[T]):
 def consume(q: Q[T]) -> t.Iterator[T]:
     while True:
         m, task_done = q.get()
-        if m is None:
+        if m.body is None:
             task_done()
             break
         yield m.body
@@ -91,85 +93,3 @@ class QueueLike:
 
     def task_done(self):
         pass  # hmm
-
-
-def fullname(ob: t.Any) -> str:
-    return f"{sys.modules[ob.__module__].__file__}:{ob.__name__}"
-
-
-class ThreadingExecutor:
-    def __init__(self):
-        self.threads = []
-
-    def spawn(self, target, *, endpoint: str, format_protocol=None, transport=None):
-        import threading
-
-        if format_protocol is None:
-            format_protocol = PickleFormat
-        if transport is None:
-            from minitask.transport import namedpipe
-
-            transport = namedpipe
-
-        def worker():
-
-            with namedpipe.create_reader_port(endpoint) as rf:
-                q = Q(QueueLike(rf), format_protocol=format_protocol())
-                target(q)
-
-        th = threading.Thread(target=worker)
-        self.threads.append(th)
-        th.start()
-        return th
-
-    def __len__(self):
-        return len(self.threads)
-
-    def wait(self):
-        for th in self.threads:
-            th.join()
-
-
-class SubprocessExecutor:
-    def __init__(self):
-        self.processes = []
-
-    def spawn(self, target, *, endpoint, format_protocol=None, transport=None):
-        import sys
-        import subprocess
-
-        if format_protocol is not None:
-            format_protocol = fullname(format_protocol)
-        else:
-            format_protocol = "minitask.q:PickleFormat"
-
-        if transport is not None:
-            transport = fullname(transport)
-        else:
-            transport = "minitask.transport.namedpipe"
-
-        cmd = [
-            sys.executable,
-            "-m",
-            "minitask.tool",
-            "worker",
-            "--endpoint",
-            endpoint,
-            "--format-protocol",
-            format_protocol,
-            "--handler",
-            fullname(target),
-            "--transport",
-            transport,
-        ]
-
-        p = subprocess.Popen(cmd)
-        self.processes.append(p)
-        return p
-
-    def __len__(self):
-        return len(self.processes)
-
-    def wait(self):
-        for p in self.processes:
-            p.wait()
