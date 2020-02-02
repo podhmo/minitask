@@ -18,15 +18,13 @@ logger = logging.getLogger(__name__)
 
 
 class Manager(contextlib.ExitStack):
-    def __init__(self, dirpath: t.Optional[str] = None):
+    def __init__(self, dirpath: t.Optional[str] = None, *, sensitive: bool = False):
         self.processes: t.List[subprocess.Popen[bytes]] = []
         self.dirpath: t.Optional[str] = dirpath
-
+        self.sensitive = sensitive
         super().__init__()
 
-    def spawn(
-        self, target: WorkerCallable, *, uid: str
-    ) -> subprocess.Popen[bytes]:
+    def spawn(self, target: WorkerCallable, *, uid: str) -> subprocess.Popen[bytes]:
         cmd = [
             sys.executable,
             "-m",
@@ -94,16 +92,26 @@ class Manager(contextlib.ExitStack):
         return str(pathlib.Path(self.tempdir.name) / f"worker.{suffix}.fifo")
 
     @contextlib.contextmanager
-    def open_writer_queue(
-        self, uid: str, *, force: bool = False
-    ) -> t.Iterator[Q[T]]:
-        with namedpipe.create_writer_port(uid, force=force) as wf:
-            yield Q(QueueLike(wf), format_protocol=PickleFormat())
+    def open_writer_queue(self, uid: str, *, force: bool = False) -> t.Iterator[Q[T]]:
+        try:
+            with namedpipe.create_writer_port(uid, force=force) as wf:
+                yield Q(QueueLike(wf), format_protocol=PickleFormat())
+        except BrokenPipeError as e:
+            logger.info("broken type: %s", e)
+        except Exception as e:
+            if self.sensitive:
+                raise
+            logger.warning("error occured: %s", e, exc_info=True)
 
     @contextlib.contextmanager
     def open_reader_queue(self, uid: str) -> t.Iterator[Q[T]]:
-        with namedpipe.create_reader_port(uid) as rf:
-            yield Q(QueueLike(rf), format_protocol=PickleFormat())
+        try:
+            with namedpipe.create_reader_port(uid) as rf:
+                yield Q(QueueLike(rf), format_protocol=PickleFormat())
+        except Exception as e:
+            if self.sensitive:
+                raise
+            logger.warning("error occured: %s", e, exc_info=True)
 
 
 class QueueLike:
@@ -124,7 +132,6 @@ class QueueLike:
 
     def task_done(self) -> None:
         pass  # hmm
-
 
 
 def _use() -> None:
