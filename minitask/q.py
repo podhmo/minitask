@@ -64,6 +64,9 @@ class Q(t.Generic[T]):
     def join(self) -> None:
         self.q.join()
 
+    def __iter__(self) -> t.Iterable[t.Optional[T]]:
+        return consume(self)
+
 
 def consume(q: Q[T]) -> t.Iterator[T]:
     while True:
