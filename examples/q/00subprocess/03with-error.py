@@ -9,7 +9,9 @@ def consumer(m: Manager, endpoint: str):
 
     print(os.getpid(), "!")
     with m.open_reader_queue(endpoint) as q:
-        for item in consume(q):
+        for i, item in enumerate(consume(q)):
+            if i == 5:
+                1 / 0
             print(os.getpid(), "<-", item)
 
 

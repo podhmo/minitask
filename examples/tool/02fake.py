@@ -1,4 +1,4 @@
-from minitask.communication import fake
+from minitask.transport import fake
 
 
 output_port = fake.create_writer_port()

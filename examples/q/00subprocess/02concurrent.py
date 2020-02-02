@@ -1,9 +1,9 @@
 import time
 from handofcats import as_command
-from minitask.worker import SubprocessWorkerManager
+from minitask.worker.subprocessworker import Manager
 
 
-def consumer(m: SubprocessWorkerManager, endpoint: str):
+def consumer(m: Manager, endpoint: str):
     import os
     from minitask.q import consume
 
@@ -13,7 +13,7 @@ def consumer(m: SubprocessWorkerManager, endpoint: str):
             print(os.getpid(), "<-", item)
 
 
-def producer(m: SubprocessWorkerManager, endpoint: str):
+def producer(m: Manager, endpoint: str):
     with m.open_writer_queue(endpoint, force=True) as q:
         for i in range(20):
             q.put(i)
@@ -23,7 +23,7 @@ def producer(m: SubprocessWorkerManager, endpoint: str):
 
 @as_command
 def run():
-    with SubprocessWorkerManager() as m:
+    with Manager() as m:
         for i in range(3):
             endpoint = m.create_endpoint(str(i))
             m.spawn(consumer, endpoint=endpoint)

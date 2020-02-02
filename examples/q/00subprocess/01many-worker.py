@@ -1,9 +1,9 @@
 import time
 from handofcats import as_command
-from minitask.worker import SubprocessWorkerManager
+from minitask.worker.subprocessworker import Manager
 
 
-def consumer(m: SubprocessWorkerManager, endpoint: str):
+def consumer(m: Manager, endpoint: str):
     import os
     from minitask.q import consume
 
@@ -15,7 +15,7 @@ def consumer(m: SubprocessWorkerManager, endpoint: str):
 
 @as_command
 def run():
-    with SubprocessWorkerManager() as m:
+    with Manager() as m:
         endpoint = m.create_endpoint("x")
 
         m.spawn(consumer, endpoint=endpoint)
