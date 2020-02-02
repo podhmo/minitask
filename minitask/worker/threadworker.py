@@ -15,14 +15,13 @@ logger = logging.getLogger(__name__)
 
 
 class Manager(contextlib.ExitStack):
-    def __init__(self) -> None:
+    def __init__(self, dirpath: t.Optional[str]=None) -> None:
         self.threads: t.List[threading.Thread] = []
         super().__init__()
 
     @reify
     def _gensym(self) -> t.Callable[[], str]:
-        g = IDGenerator()  # type: t.Callable[[], str]
-        return g
+        return IDGenerator()
 
     def spawn(self, fn: WorkerCallable, *, uid: str) -> threading.Thread:
         logger.info("spawn fn=%r uid=%r", fullmodulename(fn), uid)
@@ -55,9 +54,7 @@ class Manager(contextlib.ExitStack):
         return str(suffix)
 
     @contextlib.contextmanager
-    def open_writer_queue(
-        self, uid: str, *, force: bool = False
-    ) -> t.Iterator[Q[T]]:
+    def open_writer_queue(self, uid: str, *, force: bool = False) -> t.Iterator[Q[T]]:
         from minitask.transport import fake
 
         q = fake.create_writer_port(uid).q

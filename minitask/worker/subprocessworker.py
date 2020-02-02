@@ -69,8 +69,7 @@ class Manager(contextlib.ExitStack):
 
     @reify
     def _gensym(self) -> t.Callable[[], str]:
-        g = IDGenerator()  # type:t.Callable[[], str]
-        return g
+        return IDGenerator()
 
     def __enter__(self) -> Manager:
         return self
