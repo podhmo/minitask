@@ -5,37 +5,37 @@ import logging
 import pathlib
 import tempfile
 import contextlib
+import dataclasses
+import subprocess
 from minitask.langhelpers import reify
 from minitask.transport import namedpipe
 from minitask.q import Q, PickleFormat
-from .types import T
+from .types import T, WorkerCallable
 from ._gensym import IDGenerator
-from ._subprocess import SpawnProcessManagerBase
+from ._subprocess import spawn_worker_process, wait_processes
 
 
 logger = logging.getLogger(__name__)
 
 
-class Manager(SpawnProcessManagerBase):
-    class OptionDict(tx.TypedDict):
-        dirpath: t.Optional[str]
-        sensitive: bool
+@dataclasses.dataclass
+class Config:
+    dirpath: t.Optional[str] = None
+    sensitive: bool = False
 
-    def __init__(self, dirpath: t.Optional[str] = None, *, sensitive: bool = False):
-        self.dirpath: t.Optional[str] = dirpath
-        self.sensitive = sensitive
+
+class Manager(contextlib.ExitStack):
+    def __init__(self, config: t.Optional[Config] = None):
+        self.config = config or Config()
         super().__init__()
 
-    @reify
-    def tempdir(self) -> tempfile.TemporaryDirectory[str]:
-        tempdir = tempfile.TemporaryDirectory()
-        self.dirpath = tempdir.name
-        logger.info("create tempdir %s", tempdir.name)
-        return tempdir
+    def spawn(self, target: WorkerCallable, *, uid: str) -> subprocess.Popen[bytes]:
+        p = spawn_worker_process(self, target, uid=uid, config=self.config)
+        self.processes.append(p)
+        return p
 
-    @reify
-    def _gensym(self) -> t.Callable[[], str]:
-        return IDGenerator()
+    def __len__(self) -> int:
+        return len(self.processes)
 
     def __enter__(self) -> Manager:
         return self
@@ -46,7 +46,7 @@ class Manager(SpawnProcessManagerBase):
         value: t.Optional[BaseException],
         tb: t.Any,
     ) -> tx.Literal[False]:
-        super().__exit__(exc, value, tb)
+        self.wait()
         logger.info("remove tempdir %s", self.tempdir.name)
         self.tempdir.__exit__(exc, value, tb)
         return False  # raise error
@@ -64,7 +64,7 @@ class Manager(SpawnProcessManagerBase):
         except BrokenPipeError as e:
             logger.info("broken type: %s", e)
         except Exception as e:
-            if self.sensitive:
+            if self.config.sensitive:
                 raise
             logger.warning("error occured: %s", e, exc_info=True)
 
@@ -76,9 +76,27 @@ class Manager(SpawnProcessManagerBase):
         except BrokenPipeError as e:
             logger.info("broken type: %s", e)
         except Exception as e:
-            if self.sensitive:
+            if self.config.sensitive:
                 raise
             logger.warning("error occured: %s", e, exc_info=True)
+
+    def wait(self, *, check: bool = True) -> None:
+        wait_processes(self.processes)
+
+    @reify
+    def processes(self) -> t.List[subprocess.Popen[bytes]]:
+        return []
+
+    @reify
+    def tempdir(self) -> tempfile.TemporaryDirectory[str]:
+        tempdir = tempfile.TemporaryDirectory()
+        self.config.dirpath = tempdir.name  # side-effect!
+        logger.info("create tempdir %s", tempdir.name)
+        return tempdir
+
+    @reify
+    def _gensym(self) -> t.Callable[[], str]:
+        return IDGenerator()
 
 
 class _QueueAdapter:

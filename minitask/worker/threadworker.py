@@ -3,6 +3,7 @@ import typing as t
 import typing_extensions as tx
 import logging
 import contextlib
+import dataclasses
 from functools import partial
 import threading
 from minitask.langhelpers import reify
@@ -14,21 +15,15 @@ from .types import WorkerCallable, T
 logger = logging.getLogger(__name__)
 
 
+@dataclasses.dataclass
+class Config:
+    pass
+
+
 class Manager(contextlib.ExitStack):
-    class OptionDict(tx.TypedDict):
-        pass
-
-    @classmethod
-    def from_dict(cls, kwargs: Manager.OptionDict) -> Manager:
-        return cls()
-
-    def __init__(self) -> None:
-        self.threads: t.List[threading.Thread] = []
+    def __init__(self, config: t.Optional[Config] = None):
+        self.config = config or Config()
         super().__init__()
-
-    @reify
-    def _gensym(self) -> t.Callable[[], str]:
-        return IDGenerator()
 
     def spawn(self, fn: WorkerCallable, *, uid: str) -> threading.Thread:
         logger.info("spawn fn=%r uid=%r", fullmodulename(fn), uid)
@@ -39,10 +34,6 @@ class Manager(contextlib.ExitStack):
 
     def __len__(self) -> int:
         return len(self.threads)
-
-    def wait(self, check: bool = False) -> None:
-        for th in self.threads:
-            th.join()
 
     def __enter__(self) -> Manager:
         return self
@@ -74,6 +65,18 @@ class Manager(contextlib.ExitStack):
 
         q = fake.create_reader_port(uid).q
         yield Q(q)
+
+    def wait(self, check: bool = False) -> None:
+        for th in self.threads:
+            th.join()
+
+    @reify
+    def threads(self) -> t.List[threading.Thread]:
+        return []
+
+    @reify
+    def _gensym(self) -> t.Callable[[], str]:
+        return IDGenerator()
 
 
 def _use() -> None:

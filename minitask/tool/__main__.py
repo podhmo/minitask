@@ -32,6 +32,7 @@ def worker(
     uid: str,
     manager: str,
     handler: str,
+    config: str,
     options: t.Union[str, t.Dict[str, t.Any], None] = None
 ) -> None:
     from magicalimport import import_symbol
@@ -39,7 +40,8 @@ def worker(
 
     options = _options.loads(options)
     handler = import_symbol(handler, cwd=True)
-    manager = import_symbol(manager, cwd=True).from_dict(options)
+    config = import_symbol(config, cwd=True)(**options)
+    manager = import_symbol(manager, cwd=True)(config)
     handler(manager, uid)
 
 
