@@ -2,6 +2,7 @@ from __future__ import annotations
 import typing as t
 import typing_extensions as tx
 import dataclasses
+import queue
 import logging
 
 
@@ -31,52 +32,66 @@ class PickleFormat(FormatProtocol[bytes]):
         self.pickle = pickle
 
     def encode(self, v: t.Any) -> bytes:
-        b = self.pickle.dumps(v)
+        b: bytes = self.pickle.dumps(v)  # type:ignore
         # logger.debug("encode: %r -> %r", v, b)
         return b
 
     def decode(self, b: bytes) -> t.Any:
-        v = self.pickle.loads(b)
+        v = self.pickle.loads(b)  # type:ignore
         # logger.debug("decode: %r <- %r", v, b)
         return v
 
 
-class _QueueAdapter:
-    def __init__(self, q):
+class QueueLike(tx.Protocol[T]):
+    def get(self) -> t.Tuple[t.Optional[T], t.Callable[[], None]]:
+        ...
+
+    def put(self, v: T) -> None:
+        ...
+
+    def join(self) -> None:
+        ...
+
+
+class _QueueAdapter(QueueLike[t.Any]):
+    def __init__(self, q: queue.Queue[t.Any]) -> None:
         self.q = q
 
-    def get(self):
+    def get(self) -> t.Tuple[t.Any, t.Callable[[], None]]:
         return self.q.get(), self.q.task_done
 
-    def put(self, v):
-        return self.q.put(v)
+    def put(self, v: t.Any) -> None:
+        self.q.put(v)
 
-    def join(self):
+    def join(self) -> None:
         return self.q.join()
 
 
 class Q(t.Generic[T]):
     """queue"""
 
-    # todo: typing
+    adapter: QueueLike[t.Any]
+
     def __init__(
         self,
         q: t.Any,
         format_protocol: t.Optional[FormatProtocol[K]] = None,
-        adapter=_QueueAdapter,
-    ):
+        adapter: t.Optional[t.Callable[[t.Any], QueueLike[t.Any]]] = _QueueAdapter,
+    ) -> None:
         if adapter is None:
             self.adapter = q
         else:
             self.adapter = adapter(q)
         self.p = format_protocol
-        self.latest = None
+        self.latest: t.Optional[Message[t.Any]] = None
 
     def put(self, val: T, **metadata: t.Any) -> None:
         m = Message(val, metadata=metadata)
         if self.p is not None:
-            m = self.p.encode(m)  # e.g. pickle.dumps
-        self.adapter.put(m)
+            v = self.p.encode(m)  # e.g. pickle.dumps
+            self.adapter.put(v)
+        else:
+            self.adapter.put(m)
 
     def get(self) -> t.Tuple[Message[t.Optional[T]], t.Callable[..., None]]:
         m, task_done = self.adapter.get()
@@ -90,7 +105,7 @@ class Q(t.Generic[T]):
     def join(self) -> None:
         self.adapter.join()
 
-    def __iter__(self) -> t.Iterable[t.Optional[T]]:
+    def __iter__(self) -> t.Iterable[T]:
         return consume(self)
 
 

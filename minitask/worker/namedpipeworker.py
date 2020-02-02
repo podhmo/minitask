@@ -9,7 +9,7 @@ import dataclasses
 import subprocess
 from minitask.langhelpers import reify
 from minitask.transport import namedpipe
-from minitask.q import Q, PickleFormat
+from minitask.q import Q, PickleFormat, QueueLike
 from .types import T, WorkerCallable
 from ._gensym import IDGenerator
 from ._subprocess import spawn_worker_process, wait_processes
@@ -99,7 +99,7 @@ class Manager(contextlib.ExitStack):
         return IDGenerator()
 
 
-class _QueueAdapter:
+class _QueueAdapter(QueueLike[bytes]):
     def __init__(self, port: t.IO[bytes]) -> None:
         self.port = port
 

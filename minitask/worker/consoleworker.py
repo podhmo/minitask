@@ -4,7 +4,7 @@ import logging
 import contextlib
 import dataclasses
 from minitask.transport import console
-from minitask.q import Q, PickleFormat
+from minitask.q import Q, PickleFormat, QueueLike
 from .types import T
 
 
@@ -45,7 +45,7 @@ class Manager(contextlib.ExitStack):
             logger.warning("error occured: %s", e, exc_info=True)
 
 
-class _QueueAdapter:
+class _QueueAdapter(QueueLike[bytes]):
     def __init__(self, port: t.IO[bytes]) -> None:
         self.port = port
 
