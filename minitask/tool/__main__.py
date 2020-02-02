@@ -26,12 +26,20 @@ def reader():
         print(msg.decode("utf-8"))
 
 
-@as_subcommand
-def worker(*, uid: str, manager: str, handler: str, dirpath: t.Optional[str] = None):
+@as_subcommand  # type: ignore
+def worker(
+    *,
+    uid: str,
+    manager: str,
+    handler: str,
+    options: t.Union[str, t.Dict[str, t.Any], None] = None
+) -> None:
     from magicalimport import import_symbol
+    from minitask import _options
 
+    options = _options.loads(options)
     handler = import_symbol(handler, cwd=True)
-    manager = import_symbol(manager, cwd=True)(dirpath=dirpath)
+    manager = import_symbol(manager, cwd=True).from_dict(options)
     handler(manager, uid)
 
 

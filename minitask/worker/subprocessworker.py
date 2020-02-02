@@ -10,6 +10,7 @@ import subprocess
 from minitask.langhelpers import reify
 from minitask.transport import namedpipe
 from minitask.q import Q, PickleFormat
+from minitask import _options
 from .types import WorkerCallable, T
 from ._gensym import IDGenerator
 from ._name import fullfilename
@@ -18,6 +19,15 @@ logger = logging.getLogger(__name__)
 
 
 class Manager(contextlib.ExitStack):
+    class OptionDict(tx.TypedDict):
+        dirpath: t.Optional[str]
+        sensitive: bool
+
+    @classmethod
+    def from_dict(cls, kwargs: Manager.OptionDict) -> Manager:
+
+        return cls(**kwargs)
+
     def __init__(self, dirpath: t.Optional[str] = None, *, sensitive: bool = False):
         self.processes: t.List[subprocess.Popen[bytes]] = []
         self.dirpath: t.Optional[str] = dirpath
@@ -36,10 +46,9 @@ class Manager(contextlib.ExitStack):
             fullfilename(self),
             "--handler",
             fullfilename(target),
+            "--options",
+            _options.dumps(_options.extract(self, Manager.OptionDict)),
         ]
-        if self.dirpath is not None:
-            cmd.extend(["--dirpath", self.dirpath])
-
         logger.info("spawn cmd=%s", ", ".join(map(str, cmd)))
         p = subprocess.Popen(cmd)
         self.processes.append(p)
@@ -125,13 +134,13 @@ class _QueueAdapter:
         namedpipe.write(b, file=self.port)
         # fcntl.flock(self.port.fileno(), fcntl.LOCK_UN)
 
-    def get(self) -> t.Optional[bytes]:
+    def get(self) -> t.Tuple[t.Optional[bytes], t.Callable[[], None]]:
         b = namedpipe.read(file=self.port)  # type:bytes
         if not b:
-            return None, self._name
+            return None, self._noop
         return b, self._noop
 
-    def _noop(self):
+    def _noop(self) -> None:
         pass
 
 
