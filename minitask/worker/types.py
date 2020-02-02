@@ -13,7 +13,7 @@ class WorkerCallable(tx.Protocol):
 
 
 class WorkerManager(tx.Protocol):
-    def spawn(self, target: WorkerCallable, *, endpoint: str) -> t.Any:
+    def spawn(self, target: WorkerCallable, *, uid: str) -> t.Any:
         ...
 
     def __len__(self) -> int:
@@ -22,13 +22,13 @@ class WorkerManager(tx.Protocol):
     def wait(self, *, check: bool = True) -> None:
         ...
 
-    def create_endpoint(self, uid: t.Optional[t.Union[int, str]] = None,) -> str:
+    def generate_uid(self, suffix: t.Optional[t.Union[int, str]] = None,) -> str:
         ...
 
     def open_writer_queue(
-        self, endpoint: str, *, force: bool = False
+        self, uid: str, *, force: bool = False
     ) -> t.ContextManager[QLike]:
         ...
 
-    def open_reader_queue(self, endpoint: str) -> t.ContextManager[QLike]:
+    def open_reader_queue(self, uid: str) -> t.ContextManager[QLike]:
         ...

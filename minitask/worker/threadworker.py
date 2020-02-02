@@ -24,9 +24,9 @@ class Manager(contextlib.ExitStack):
         g = IDGenerator()  # type: t.Callable[[], str]
         return g
 
-    def spawn(self, fn: WorkerCallable, *, endpoint: str) -> threading.Thread:
-        logger.info("spawn fn=%r endpoint=%r", fullmodulename(fn), endpoint)
-        th = threading.Thread(target=partial(fn, self, endpoint))
+    def spawn(self, fn: WorkerCallable, *, uid: str) -> threading.Thread:
+        logger.info("spawn fn=%r uid=%r", fullmodulename(fn), uid)
+        th = threading.Thread(target=partial(fn, self, uid))
         self.threads.append(th)
         th.start()
         return th
@@ -49,25 +49,25 @@ class Manager(contextlib.ExitStack):
     ) -> tx.Literal[False]:
         return False
 
-    def create_endpoint(self, uid: t.Union[int, str, None] = None) -> str:
-        if uid is None:
+    def generate_uid(self, suffix: t.Union[int, str, None] = None) -> str:
+        if suffix is None:
             return self._gensym()
-        return str(uid)
+        return str(suffix)
 
     @contextlib.contextmanager
     def open_writer_queue(
-        self, endpoint: str, *, force: bool = False
+        self, uid: str, *, force: bool = False
     ) -> t.Iterator[Q[T]]:
         from minitask.transport import fake
 
-        q = fake.create_writer_port(endpoint).q
+        q = fake.create_writer_port(uid).q
         yield Q(q)
 
     @contextlib.contextmanager
-    def open_reader_queue(self, endpoint: str) -> t.Iterator[Q[T]]:
+    def open_reader_queue(self, uid: str) -> t.Iterator[Q[T]]:
         from minitask.transport import fake
 
-        q = fake.create_reader_port(endpoint).q
+        q = fake.create_reader_port(uid).q
         yield Q(q)
 
 

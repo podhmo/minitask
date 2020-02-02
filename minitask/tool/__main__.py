@@ -31,14 +31,12 @@ def reader():
 
 
 @as_subcommand
-def worker(
-    *, endpoint: str, manager: str, handler: str, dirpath: t.Optional[str] = None
-):
+def worker(*, uid: str, manager: str, handler: str, dirpath: t.Optional[str] = None):
     from magicalimport import import_symbol
 
     handler = import_symbol(handler, cwd=True)
     manager = import_symbol(manager, cwd=True)(dirpath=dirpath)
-    handler(manager, endpoint)
+    handler(manager, uid)
 
 
 as_subcommand.run()

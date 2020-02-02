@@ -25,15 +25,15 @@ class Manager(contextlib.ExitStack):
         super().__init__()
 
     def spawn(
-        self, target: WorkerCallable, *, endpoint: str
+        self, target: WorkerCallable, *, uid: str
     ) -> subprocess.Popen[bytes]:
         cmd = [
             sys.executable,
             "-m",
             "minitask.tool",
             "worker",
-            "--endpoint",
-            endpoint,
+            "--uid",
+            uid,
             "--manager",
             fullfilename(self),
             "--handler",
@@ -88,21 +88,21 @@ class Manager(contextlib.ExitStack):
         self.tempdir.__exit__(exc, value, tb)
         return False  # raise error
 
-    def create_endpoint(self, uid: t.Optional[t.Union[int, str]] = None,) -> str:
-        if uid is None:
-            uid = self._gensym()
-        return str(pathlib.Path(self.tempdir.name) / f"worker.{uid}.fifo")
+    def generate_uid(self, suffix: t.Optional[t.Union[int, str]] = None,) -> str:
+        if suffix is None:
+            suffix = self._gensym()
+        return str(pathlib.Path(self.tempdir.name) / f"worker.{suffix}.fifo")
 
     @contextlib.contextmanager
     def open_writer_queue(
-        self, endpoint: str, *, force: bool = False
+        self, uid: str, *, force: bool = False
     ) -> t.Iterator[Q[T]]:
-        with namedpipe.create_writer_port(endpoint, force=force) as wf:
+        with namedpipe.create_writer_port(uid, force=force) as wf:
             yield Q(QueueLike(wf), format_protocol=PickleFormat())
 
     @contextlib.contextmanager
-    def open_reader_queue(self, endpoint: str) -> t.Iterator[Q[T]]:
-        with namedpipe.create_reader_port(endpoint) as rf:
+    def open_reader_queue(self, uid: str) -> t.Iterator[Q[T]]:
+        with namedpipe.create_reader_port(uid) as rf:
             yield Q(QueueLike(rf), format_protocol=PickleFormat())
 
 
