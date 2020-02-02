@@ -2,7 +2,6 @@ from __future__ import annotations
 import typing as t
 import typing_extensions as tx
 import dataclasses
-import pickle
 import logging
 
 
@@ -26,13 +25,18 @@ class FormatProtocol(tx.Protocol[K]):
 
 
 class PickleFormat(FormatProtocol[bytes]):
+    def __init__(self):
+        import pickle
+
+        self.pickle = pickle
+
     def encode(self, v: t.Any) -> bytes:
-        b = pickle.dumps(v)
+        b = self.pickle.dumps(v)
         # logger.debug("encode: %r -> %r", v, b)
         return b
 
     def decode(self, b: bytes) -> t.Any:
-        v = pickle.loads(b)
+        v = self.pickle.loads(b)
         # logger.debug("decode: %r <- %r", v, b)
         return v
 
