@@ -1,8 +1,8 @@
 default: 00 01 02
 
 00:
-	$(MAKE) -C $(shell echo $@*/)
+	python $(shell echo $@*.py)
 01:
-	$(MAKE) -C $(shell echo $@*/)
+	python $(shell echo $@*.py)
 02:
-	$(MAKE) -C $(shell echo $@*/)
+	python $(shell echo $@*.py)

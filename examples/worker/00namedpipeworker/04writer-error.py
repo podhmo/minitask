@@ -5,11 +5,10 @@ from minitask.worker.namedpipeworker import Manager
 
 def consumer(m: Manager, uid: str):
     import os
-    from minitask.q import consume
 
     print(os.getpid(), "!")
     with m.open_reader_queue(uid) as q:
-        for item in consume(q):
+        for item in q:
             print(os.getpid(), "<-", item)
 
 
