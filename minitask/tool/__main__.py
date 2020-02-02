@@ -6,15 +6,11 @@ from handofcats import as_subcommand
 def writer(*, name: str = "hello", fieldname: str = "line"):
     import sys
     from minitask.transport.console import create_writer_port, write
-    from tinyrpc.protocols.jsonrpc import JSONRPCProtocol
-
-    # todo: jsonrpc, raw
-    protocol = JSONRPCProtocol()
 
     port = create_writer_port()
     for line in sys.stdin:
-        req = protocol.create_request(name, kwargs={fieldname: line})
-        write(req.serialize(), file=port)
+        b = line.rstrip("\n").encode("utf-8")
+        write(b, file=port)
 
 
 @as_subcommand
