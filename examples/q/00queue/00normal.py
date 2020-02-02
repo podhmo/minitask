@@ -1,5 +1,5 @@
 import queue
-from minitask.q import Q, consume
+from minitask.q import Q
 
 q = Q(queue.Queue())
 for i in range(5):
@@ -7,5 +7,5 @@ for i in range(5):
     q.put(i)
 q.put(None)
 
-for item in consume(q):
+for item in q:
     print("->", item)

@@ -2,7 +2,7 @@ import typing as t
 import queue
 import random
 import math
-from minitask.q import Q, consume, Message
+from minitask.q import Q, Message
 
 random.seed(0)
 
@@ -23,5 +23,5 @@ for i in range(5):
     print("<-", i)
     q.put(i, priority=random.random())
 
-for item in consume(q):
+for item in q:
     print("->", item)

@@ -5,11 +5,10 @@ from minitask.worker.subprocessworker import Manager
 
 def consumer(m: Manager, uid: str):
     import os
-    from minitask.q import consume
 
     print(os.getpid(), "!")
     with m.open_reader_queue(uid) as q:
-        for i, item in enumerate(consume(q)):
+        for i, item in enumerate(q):
             if i == 5:
                 1 / 0
             print(os.getpid(), "<-", item)
