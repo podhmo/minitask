@@ -1,7 +1,6 @@
 from __future__ import annotations
 import typing as t
 import typing_extensions as tx
-import sys
 import logging
 import pathlib
 import tempfile
@@ -10,10 +9,11 @@ import subprocess
 from minitask.langhelpers import reify
 from minitask.transport import namedpipe
 from minitask.q import Q, PickleFormat
-from minitask import _options
 from .types import WorkerCallable, T
 from ._gensym import IDGenerator
-from ._name import fullfilename
+from ._subprocess import spawn_worker_process
+from ._subprocess import wait_processes
+
 
 logger = logging.getLogger(__name__)
 
@@ -35,22 +35,9 @@ class Manager(contextlib.ExitStack):
         super().__init__()
 
     def spawn(self, target: WorkerCallable, *, uid: str) -> subprocess.Popen[bytes]:
-        cmd = [
-            sys.executable,
-            "-m",
-            "minitask.tool",
-            "worker",
-            "--uid",
-            uid,
-            "--manager",
-            fullfilename(self),
-            "--handler",
-            fullfilename(target),
-            "--options",
-            _options.dumps(_options.extract(self, Manager.OptionDict)),
-        ]
-        logger.info("spawn cmd=%s", ", ".join(map(str, cmd)))
-        p = subprocess.Popen(cmd)
+        p = spawn_worker_process(
+            self, target, uid=uid, option_type=self.__class__.OptionDict
+        )
         self.processes.append(p)
         return p
 
@@ -58,16 +45,7 @@ class Manager(contextlib.ExitStack):
         return len(self.processes)
 
     def wait(self, *, check: bool = True) -> None:
-        for p in self.processes:
-            try:
-                p.wait()
-                if check:
-                    cp = subprocess.CompletedProcess(
-                        p.args, p.returncode, stdout=p.stdout, stderr=p.stderr
-                    )
-                    cp.check_returncode()
-            except KeyboardInterrupt:
-                logger.info("keybord interrupted, pid=%d", p.pid)
+        wait_processes(self.processes)
 
     @reify
     def tempdir(self) -> tempfile.TemporaryDirectory[str]:
@@ -147,4 +125,4 @@ class _QueueAdapter:
 def _use() -> None:
     from .types import WorkerManager
 
-    m: WorkerManager = Manager()
+    _: WorkerManager = Manager()

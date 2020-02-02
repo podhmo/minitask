@@ -76,6 +76,7 @@ class Manager(contextlib.ExitStack):
 
 
 def _use() -> None:
+    """type assertion check"""
     from .types import WorkerManager
 
-    m: WorkerManager = Manager()
+    _: WorkerManager = Manager()
