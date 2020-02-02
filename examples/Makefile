@@ -1,3 +1,3 @@
 default:
 	$(MAKE) -C tool
-	$(MAKE) -C ipc
+	$(MAKE) -C q
