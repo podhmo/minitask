@@ -9,7 +9,8 @@ import dataclasses
 import subprocess
 from minitask.langhelpers import reify
 from minitask.transport import namedpipe
-from minitask.q import Q, PickleFormat, QueueLike
+from minitask.q import Q, QueueLike
+from minitask.formats import PickleFormat
 from .types import T, WorkerCallable
 from ._gensym import IDGenerator
 from ._subprocess import spawn_worker_process, wait_processes

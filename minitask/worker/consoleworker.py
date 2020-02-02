@@ -4,7 +4,8 @@ import logging
 import contextlib
 import dataclasses
 from minitask.transport import console
-from minitask.q import Q, PickleFormat, QueueLike
+from minitask.q import Q, QueueLike
+from minitask.formats import PickleFormat
 from .types import T
 
 
