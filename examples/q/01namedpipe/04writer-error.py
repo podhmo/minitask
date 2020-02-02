@@ -1,6 +1,6 @@
 import time
 from handofcats import as_command
-from minitask.worker.subprocessworker import Manager
+from minitask.worker.namedpipeworker import Manager
 
 
 def consumer(m: Manager, uid: str):

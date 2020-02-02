@@ -1,6 +1,6 @@
 import time
 from handofcats import as_command
-from minitask.worker.subprocessworker import Manager
+from minitask.worker.namedpipeworker import Manager
 
 
 def consumer(m: Manager, uid: str):
@@ -8,9 +8,7 @@ def consumer(m: Manager, uid: str):
 
     print(os.getpid(), "!")
     with m.open_reader_queue(uid) as q:
-        for i, item in enumerate(q):
-            if i == 5:
-                1 / 0
+        for item in q:
             print(os.getpid(), "<-", item)
 
 
