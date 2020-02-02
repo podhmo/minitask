@@ -5,47 +5,26 @@ import logging
 import pathlib
 import tempfile
 import contextlib
-import subprocess
 from minitask.langhelpers import reify
 from minitask.transport import namedpipe
 from minitask.q import Q, PickleFormat
-from .types import WorkerCallable, T
+from .types import T
 from ._gensym import IDGenerator
-from ._subprocess import spawn_worker_process
-from ._subprocess import wait_processes
+from ._subprocess import SpawnProcessManagerBase
 
 
 logger = logging.getLogger(__name__)
 
 
-class Manager(contextlib.ExitStack):
+class Manager(SpawnProcessManagerBase):
     class OptionDict(tx.TypedDict):
         dirpath: t.Optional[str]
         sensitive: bool
 
-    @classmethod
-    def from_dict(cls, kwargs: Manager.OptionDict) -> Manager:
-
-        return cls(**kwargs)
-
     def __init__(self, dirpath: t.Optional[str] = None, *, sensitive: bool = False):
-        self.processes: t.List[subprocess.Popen[bytes]] = []
         self.dirpath: t.Optional[str] = dirpath
         self.sensitive = sensitive
         super().__init__()
-
-    def spawn(self, target: WorkerCallable, *, uid: str) -> subprocess.Popen[bytes]:
-        p = spawn_worker_process(
-            self, target, uid=uid, option_type=self.__class__.OptionDict
-        )
-        self.processes.append(p)
-        return p
-
-    def __len__(self) -> int:
-        return len(self.processes)
-
-    def wait(self, *, check: bool = True) -> None:
-        wait_processes(self.processes)
 
     @reify
     def tempdir(self) -> tempfile.TemporaryDirectory[str]:
@@ -67,7 +46,7 @@ class Manager(contextlib.ExitStack):
         value: t.Optional[BaseException],
         tb: t.Any,
     ) -> tx.Literal[False]:
-        self.wait()
+        super().__exit__(exc, value, tb)
         logger.info("remove tempdir %s", self.tempdir.name)
         self.tempdir.__exit__(exc, value, tb)
         return False  # raise error

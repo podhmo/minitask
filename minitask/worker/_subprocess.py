@@ -54,7 +54,7 @@ def wait_processes(
             logger.info("keybord interrupted, pid=%d", p.pid)
 
 
-class BaseManager(contextlib.ExitStack):
+class SpawnProcessManagerBase(contextlib.ExitStack):
     class OptionDict(tx.TypedDict):
         pass
 
@@ -63,7 +63,7 @@ class BaseManager(contextlib.ExitStack):
 
         return cls(**kwargs)
 
-    def __init__(self, *, _: t.Any) -> None:
+    def __init__(self, *, _: t.Any = None) -> None:
         pass
 
     @reify
@@ -95,3 +95,14 @@ class BaseManager(contextlib.ExitStack):
     ) -> tx.Literal[False]:
         self.wait()
         return False
+
+    # def generate_uid(self, suffix: t.Optional[t.Union[int, str]] = None,) -> str:
+    #     ...
+
+    # def open_writer_queue(
+    #     self, uid: str, *, force: bool = False
+    # ) -> t.ContextManager[Q[T]]:
+    #     ...
+
+    # def open_reader_queue(self, uid: str) -> t.ContextManager[Q[T]]:
+    #     ...

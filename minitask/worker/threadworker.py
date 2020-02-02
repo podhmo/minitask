@@ -53,6 +53,7 @@ class Manager(contextlib.ExitStack):
         value: t.Optional[BaseException],
         tb: t.Any,
     ) -> tx.Literal[False]:
+        self.wait()
         return False
 
     def generate_uid(self, suffix: t.Union[int, str, None] = None) -> str:
