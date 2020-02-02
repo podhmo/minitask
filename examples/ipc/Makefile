@@ -1,8 +1,0 @@
-default: 00 01 02
-
-00:
-	DEBUG=1 python $(shell echo $@*.py) run
-01:
-	DEBUG=1 python $(shell echo $@*.py) run
-02:
-	$(MAKE) -C $(shell echo $@*/)
