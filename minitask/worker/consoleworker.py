@@ -20,9 +20,6 @@ class Manager(contextlib.ExitStack):
     def __init__(self, config: t.Optional[Config] = None):
         self.config = config or Config()
 
-    def __len__(self) -> int:
-        return len(self.processes)
-
     @contextlib.contextmanager
     def open_writer_queue(
         self, uid: t.Optional[str], *, force: bool = False

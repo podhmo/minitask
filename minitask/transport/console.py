@@ -1,6 +1,14 @@
 import typing as t
 import sys
-from ._base import read, write  # noqa 401
+from ._base import read, write
+
+__all__ = [
+    "read",
+    "write",
+    "create_reader_port",
+    "create_writer_port",
+    "create_reader_buffer",
+]
 
 
 def create_reader_port(filename: t.Optional[str] = None) -> t.IO[bytes]:
