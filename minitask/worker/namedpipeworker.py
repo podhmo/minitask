@@ -10,7 +10,7 @@ import subprocess
 from minitask.langhelpers import reify
 from minitask.transport import namedpipe
 from minitask.q import Q, QueueLike
-from minitask.formats import PickleFormat
+from minitask.formats import PickleMessageFormat
 from .types import T, WorkerCallable
 from ._gensym import IDGenerator
 from ._subprocess import spawn_worker_process, wait_processes
@@ -61,7 +61,7 @@ class Manager(contextlib.ExitStack):
     def open_writer_queue(self, uid: str, *, force: bool = False) -> t.Iterator[Q[T]]:
         try:
             with namedpipe.create_writer_port(uid, force=force) as wf:
-                yield Q(wf, format_protocol=PickleFormat(), adapter=_QueueAdapter)
+                yield Q(wf, format_protocol=PickleMessageFormat(), adapter=_QueueAdapter)
         except BrokenPipeError as e:
             logger.info("broken type: %s", e)
         except Exception as e:
@@ -73,7 +73,7 @@ class Manager(contextlib.ExitStack):
     def open_reader_queue(self, uid: str) -> t.Iterator[Q[T]]:
         try:
             with namedpipe.create_reader_port(uid) as rf:
-                yield Q(rf, format_protocol=PickleFormat(), adapter=_QueueAdapter)
+                yield Q(rf, format_protocol=PickleMessageFormat(), adapter=_QueueAdapter)
         except BrokenPipeError as e:
             logger.info("broken type: %s", e)
         except Exception as e:
@@ -110,11 +110,13 @@ class _QueueAdapter(QueueLike[bytes]):
         namedpipe.write(b, file=self.port)
         # fcntl.flock(self.port.fileno(), fcntl.LOCK_UN)
 
-    def get(self) -> t.Tuple[t.Optional[bytes], t.Callable[[], None]]:
-        b = namedpipe.read(file=self.port)  # type:bytes
+    def get(
+        self,
+    ) -> t.Tuple[t.Optional[bytes], t.Dict[str, t.Any], t.Callable[[], None]]:
+        b = namedpipe.read(file=self.port)
         if not b:
-            return None, self._noop
-        return b, self._noop
+            return None, {}, self._noop
+        return b, {}, self._noop
 
     def _noop(self) -> None:
         pass

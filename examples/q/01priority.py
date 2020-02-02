@@ -12,9 +12,9 @@ class PriorityQueueFormat:
         assert "priority" in m.metadata  # TODO: type checking
         return (m.metadata["priority"], m.body)
 
-    def decode(self, b: t.Tuple[t.Any, t.Any]):
+    def decode(self, b: t.Tuple[t.Any, t.Any]) -> Message[t.Any]:
         priority, body = b
-        return Message(body, metadata={"priority": priority})
+        return Message(body=body, metadata={"priority": priority})
 
 
 q = Q(queue.PriorityQueue(), format_protocol=PriorityQueueFormat())

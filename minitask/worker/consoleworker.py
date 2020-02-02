@@ -5,7 +5,7 @@ import contextlib
 import dataclasses
 from minitask.transport import console
 from minitask.q import Q, QueueLike
-from minitask.formats import PickleFormat
+from minitask.formats import PickleMessageFormat
 from .types import T
 
 
@@ -27,7 +27,7 @@ class Manager(contextlib.ExitStack):
     ) -> t.Iterator[Q[T]]:
         try:
             with console.create_writer_port(uid) as wf:
-                yield Q(wf, format_protocol=PickleFormat(), adapter=_QueueAdapter)
+                yield Q(wf, format_protocol=PickleMessageFormat(), adapter=_QueueAdapter)
         except Exception as e:
             if self.config.sensitive:
                 raise
@@ -37,7 +37,7 @@ class Manager(contextlib.ExitStack):
     def open_reader_queue(self, uid: t.Optional[str]) -> t.Iterator[Q[T]]:
         try:
             with console.create_reader_port(uid) as rf:
-                yield Q(rf, format_protocol=PickleFormat(), adapter=_QueueAdapter)
+                yield Q(rf, format_protocol=PickleMessageFormat(), adapter=_QueueAdapter)
         except BrokenPipeError as e:
             logger.info("broken type: %s", e)
         except Exception as e:
@@ -53,11 +53,13 @@ class _QueueAdapter(QueueLike[bytes]):
     def put(self, b: bytes) -> None:
         console.write(b, file=self.port)
 
-    def get(self) -> t.Tuple[t.Optional[bytes], t.Callable[[], None]]:
+    def get(
+        self,
+    ) -> t.Tuple[t.Optional[bytes], t.Dict[str, t.Any], t.Callable[[], None]]:
         b = console.read(file=self.port)  # type:bytes
         if not b:
-            return None, self._noop
-        return b, self._noop
+            return None, {}, self._noop
+        return b, {}, self._noop
 
     def _noop(self) -> None:
         pass

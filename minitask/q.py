@@ -1,11 +1,10 @@
 from __future__ import annotations
 import typing as t
 import typing_extensions as tx
-import dataclasses
 import queue
 import logging
 
-from .formats import FormatProtocol
+from .formats import FormatProtocol, Message
 
 K = t.TypeVar("K")
 T = t.TypeVar("T")
@@ -13,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 class QueueLike(tx.Protocol[T]):
-    def get(self) -> t.Tuple[t.Optional[T], t.Callable[[], None]]:
+    def get(self) -> t.Tuple[t.Optional[T], t.Dict[str, t.Any], t.Callable[[], None]]:
         ...
 
     def put(self, v: T) -> None:
@@ -23,18 +22,12 @@ class QueueLike(tx.Protocol[T]):
         ...
 
 
-@dataclasses.dataclass
-class Message(t.Generic[T]):
-    body: T
-    metadata: t.Dict[str, t.Any] = dataclasses.field(default_factory=dict)
-
-
 class _QueueAdapter(QueueLike[t.Any]):
     def __init__(self, q: queue.Queue[t.Any]) -> None:
         self.q = q
 
-    def get(self) -> t.Tuple[t.Any, t.Callable[[], None]]:
-        return self.q.get(), self.q.task_done
+    def get(self) -> t.Tuple[t.Any, t.Dict[str, t.Any], t.Callable[[], None]]:
+        return self.q.get(), {}, self.q.task_done
 
     def put(self, v: t.Any) -> None:
         self.q.put(v)
@@ -70,11 +63,15 @@ class Q(t.Generic[T]):
             self.adapter.put(m)
 
     def get(self) -> t.Tuple[Message[t.Optional[T]], t.Callable[..., None]]:
-        m, task_done = self.adapter.get()
-        if m is None:
-            m = Message(None)  # xxx
+        body, metadata, task_done = self.adapter.get()
+        if body is None:
+            m: Message[t.Optional[T]] = Message(None)
         elif self.p is not None:
-            m = self.p.decode(m)  # e.g. pickle.loads
+            m = self.p.decode(body)  # e.g. pickle.loads
+            if metadata:
+                m.metadata.update(metadata)
+        else:
+            m = body
         self.latest = m
         return m, task_done
 

@@ -1,10 +1,6 @@
 from setuptools import setup, find_packages
 
 
-install_requires = ["handofcats"]
-dev_requires = ["black", "flake8", "mypy"]
-tests_requires = ["pytest"]
-
 setup(
     classifiers=[
         # "License :: OSI Approved :: MIT License",
@@ -17,9 +13,13 @@ setup(
     ],
     python_requires=">3.5",
     packages=find_packages(exclude=["minitask.tests"]),
-    install_requires=install_requires,
-    extras_require={"testing": tests_requires, "dev": dev_requires},
-    tests_require=tests_requires,
+    install_requires=["handofcats", "magicalimport"],
+    extras_require={
+        "testing": ["pytest"],
+        "dev": ["black", "flake8", "mypy"],
+        "sqs": ["boto3"],
+    },
+    tests_require=["pytest"],
     test_suite="minitask.tests",
     #     entry_points="""
     #       [console_scripts]
