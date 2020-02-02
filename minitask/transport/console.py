@@ -3,12 +3,16 @@ import sys
 from ._base import read, write  # noqa 401
 
 
-def create_reader_port() -> t.IO[bytes]:
-    return sys.stdin.buffer
+def create_reader_port(filename: t.Optional[str] = None) -> t.IO[bytes]:
+    if filename is None:
+        return sys.stdin.buffer
+    return open(filename, "rb")
 
 
-def create_writer_port() -> t.IO[bytes]:
-    return sys.stdout.buffer
+def create_writer_port(filename: t.Optional[str] = None) -> t.IO[bytes]:
+    if filename is None:
+        return sys.stdout.buffer
+    return open(filename, "wb")
 
 
 def create_reader_buffer(
