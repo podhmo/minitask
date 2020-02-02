@@ -1,3 +1,4 @@
+from __future__ import annotations
 import typing as t
 import queue
 import pathlib
@@ -14,21 +15,21 @@ class InmemoryQueueBuffer:
     def __init__(
         self,
         recv: t.Callable[..., t.Any],  # todo: typing
-        q: t.Optional[queue.Queue] = None,
+        q: t.Optional[queue.Queue[t.Optional[bytes]]] = None,
         *,
         name: str = "queue.pickle",
     ):
         self.recv = recv
-        self.q = queue.Queue()
+        self.q: queue.Queue[t.Optional[bytes]] = queue.Queue()
         self.path = pathlib.Path(name)
         self._th: t.Optional[threading.Thread] = None
 
     def load(
         self,
-        q: t.Optional[queue.Queue] = None,
+        q: t.Optional[queue.Queue[t.Optional[bytes]]] = None,
         *,
         path: t.Optional[pathlib.Path] = None,
-    ):
+    ) -> None:
         path = path or self.path
         q = q or self.q
         if path.exists():
@@ -40,10 +41,10 @@ class InmemoryQueueBuffer:
 
     def save(
         self,
-        q: t.Optional[queue.Queue] = None,
+        q: t.Optional[queue.Queue[t.Optional[bytes]]] = None,
         *,
         path: t.Optional[pathlib.Path] = None,
-    ):
+    ) -> None:
         path = path or self.path
         q = q or self.q
         # todo: multiprocess safe
@@ -53,11 +54,11 @@ class InmemoryQueueBuffer:
             logger.info("save queue: %s", path)
             pickle.dump(q.queue, path.open("wb"))
 
-    def __iter__(self):
+    def __iter__(self) -> t.Iterable[t.Optional[bytes]]:
         q = self.q
         path = self.path
 
-        def _peek():
+        def _peek() ->None:
             while True:
                 item = self.recv()
                 if item is None:

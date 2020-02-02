@@ -21,17 +21,17 @@ def create_endpoint(uid: t.Union[int, str], *, dirpath: str) -> pathlib.Path:
 
 
 def create_writer_port(
-    endpoint: str, *, retries=[0.1, 0.2, 0.2, 0.4], force=False
+    endpoint: str, *, retries: t.List[float] = [0.1, 0.2, 0.2, 0.4], force: bool = False
 ) -> t.IO[bytes]:
     path = pathlib.Path(endpoint)
     if force and path.exists():
-        path.unlink(missing_ok=True)
+        path.unlink()
 
     def _opener(path: str, flags: int) -> int:
         return os.open(path, os.O_WRONLY)  # NOT O_CREAT
 
     logger.info("open fifo[W]: %s", endpoint)
-    exc = None
+    exc: t.Optional[Exception] = None
     for i, waittime in enumerate(retries):
         try:
             os.mkfifo(str(endpoint))  # TODO: force option?
@@ -40,13 +40,17 @@ def create_writer_port(
             exc = e
             logger.debug("%r is not found, waiting, retry=%d", endpoint, i)
             time.sleep(waittime)
-    raise exc
+    if exc is not None:
+        raise exc
+    raise RuntimeError("too much waiting")
 
 
 def create_reader_port(
-    endpoint: str, *, retries=[0.1, 0.2, 0.2, 0.4, 0.8, 1.6, 3.2, 6.4, 12.8]
+    endpoint: str,
+    *,
+    retries: t.List[float] = [0.1, 0.2, 0.2, 0.4, 0.8, 1.6, 3.2, 6.4, 12.8],
 ) -> t.IO[bytes]:
-    exc = None
+    exc: t.Optional[Exception] = None
     for i, waittime in enumerate(retries, 1):
         try:
             logger.info("open fifo[R]: %s", endpoint)
@@ -56,13 +60,15 @@ def create_reader_port(
             exc = e
             logger.debug("%r is not found, waiting, retry=%d", endpoint, i)
             time.sleep(waittime)
-    raise exc
+    if exc is not None:
+        raise exc
+    raise RuntimeError("too much waiting")
 
 
 def create_reader_buffer(
     recv: t.Callable[[], t.Any]
-) -> t.Tuple[t.Iterable[t.Any], t.Optional[t.Callable[[], None]]]:
+) -> t.Tuple[InmemoryQueueBuffer, t.Optional[t.Callable[[], None]]]:
     buf = InmemoryQueueBuffer(recv)
     buf.load()
     teardown = buf.save
-    return iter(buf), teardown
+    return buf, teardown

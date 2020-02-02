@@ -26,7 +26,7 @@ def create_writer_port(filename: t.Optional[str] = None) -> t.IO[bytes]:
 def create_reader_buffer(
     recv: t.Callable[[], t.Any]
 ) -> t.Tuple[t.Iterable[t.Any], t.Optional[t.Callable[[], None]]]:
-    def iterate():
+    def iterate() -> t.Iterable[bytes]:
         while True:
             item = recv()
             if item is None:
