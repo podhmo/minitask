@@ -94,7 +94,7 @@ class Manager(contextlib.ExitStack):
     def open_writer_queue(self, uid: str, *, force: bool = False) -> t.Iterator[Q[T]]:
         try:
             with namedpipe.create_writer_port(uid, force=force) as wf:
-                yield Q(_QueueAdapter(wf), format_protocol=PickleFormat())
+                yield Q(wf, format_protocol=PickleFormat(), adapter=_QueueAdapter)
         except BrokenPipeError as e:
             logger.info("broken type: %s", e)
         except Exception as e:
@@ -106,7 +106,7 @@ class Manager(contextlib.ExitStack):
     def open_reader_queue(self, uid: str) -> t.Iterator[Q[T]]:
         try:
             with namedpipe.create_reader_port(uid) as rf:
-                yield Q(_QueueAdapter(rf), format_protocol=PickleFormat())
+                yield Q(rf, format_protocol=PickleFormat(), adapter=_QueueAdapter)
         except BrokenPipeError as e:
             logger.info("broken type: %s", e)
         except Exception as e:
@@ -128,11 +128,11 @@ class _QueueAdapter:
     def get(self) -> t.Optional[bytes]:
         b = namedpipe.read(file=self.port)  # type:bytes
         if not b:
-            return None
-        return b
+            return None, self._name
+        return b, self._noop
 
-    def task_done(self) -> None:
-        pass  # hmm
+    def _noop(self):
+        pass
 
 
 def _use() -> None:

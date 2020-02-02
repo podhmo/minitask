@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 class Manager(contextlib.ExitStack):
-    def __init__(self, dirpath: t.Optional[str]=None) -> None:
+    def __init__(self, dirpath: t.Optional[str] = None) -> None:
         self.threads: t.List[threading.Thread] = []
         super().__init__()
 

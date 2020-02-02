@@ -41,12 +41,34 @@ class PickleFormat(FormatProtocol[bytes]):
         return v
 
 
+class _QueueAdapter:
+    def __init__(self, q):
+        self.q = q
+
+    def get(self):
+        return self.q.get(), self.q.task_done
+
+    def put(self, v):
+        return self.q.put(v)
+
+    def join(self):
+        return self.q.join()
+
+
 class Q(t.Generic[T]):
     """queue"""
 
     # todo: typing
-    def __init__(self, q: t.Any, format_protocol: t.Optional[FormatProtocol[K]] = None):
-        self.q = q
+    def __init__(
+        self,
+        q: t.Any,
+        format_protocol: t.Optional[FormatProtocol[K]] = None,
+        adapter=_QueueAdapter,
+    ):
+        if adapter is None:
+            self.adapter = q
+        else:
+            self.adapter = adapter(q)
         self.p = format_protocol
         self.latest = None
 
@@ -54,19 +76,19 @@ class Q(t.Generic[T]):
         m = Message(val, metadata=metadata)
         if self.p is not None:
             m = self.p.encode(m)  # e.g. pickle.dumps
-        self.q.put(m)
+        self.adapter.put(m)
 
     def get(self) -> t.Tuple[Message[t.Optional[T]], t.Callable[..., None]]:
-        m = self.q.get()
+        m, task_done = self.adapter.get()
         if m is None:
             m = Message(None)  # xxx
         elif self.p is not None:
             m = self.p.decode(m)  # e.g. pickle.loads
         self.latest = m
-        return m, self.q.task_done
+        return m, task_done
 
     def join(self) -> None:
-        self.q.join()
+        self.adapter.join()
 
     def __iter__(self) -> t.Iterable[t.Optional[T]]:
         return consume(self)
