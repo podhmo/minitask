@@ -25,7 +25,7 @@ class FormatProtocol(tx.Protocol[K]):
 
 
 class PickleFormat(FormatProtocol[bytes]):
-    def __init__(self):
+    def __init__(self) -> None:
         import pickle
 
         self.pickle = pickle

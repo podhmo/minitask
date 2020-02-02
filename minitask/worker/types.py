@@ -1,14 +1,14 @@
 from __future__ import annotations
 import typing as t
 import typing_extensions as tx
+from minitask.q import Q
 
-QLike = t.Any
 T = t.TypeVar("T")
 WorkerT = t.TypeVar("WorkerT", covariant=True)
 
 
 class WorkerCallable(tx.Protocol):
-    def __call__(self, m: WorkerManager, q: QLike) -> None:
+    def __call__(self, m: WorkerManager, q: Q[T]) -> None:
         ...
 
 
@@ -27,8 +27,8 @@ class WorkerManager(tx.Protocol):
 
     def open_writer_queue(
         self, uid: str, *, force: bool = False
-    ) -> t.ContextManager[QLike]:
+    ) -> t.ContextManager[Q[T]]:
         ...
 
-    def open_reader_queue(self, uid: str) -> t.ContextManager[QLike]:
+    def open_reader_queue(self, uid: str) -> t.ContextManager[Q[T]]:
         ...
