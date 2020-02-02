@@ -108,6 +108,8 @@ class Manager(contextlib.ExitStack):
         try:
             with namedpipe.create_reader_port(uid) as rf:
                 yield Q(_QueueAdapter(rf), format_protocol=PickleFormat())
+        except BrokenPipeError as e:
+            logger.info("broken type: %s", e)
         except Exception as e:
             if self.sensitive:
                 raise
