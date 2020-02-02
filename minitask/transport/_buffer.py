@@ -58,7 +58,7 @@ class InmemoryQueueBuffer:
         q = self.q
         path = self.path
 
-        def _peek() ->None:
+        def _peek() -> None:
             while True:
                 item = self.recv()
                 if item is None:

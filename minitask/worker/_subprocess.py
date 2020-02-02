@@ -5,7 +5,7 @@ import subprocess
 import logging
 from minitask import _options
 from .types import WorkerCallable, WorkerManager
-from ._name import fullfilename, fullmodulename
+from ._name import fullfilename
 
 logger = logging.getLogger(__name__)
 
