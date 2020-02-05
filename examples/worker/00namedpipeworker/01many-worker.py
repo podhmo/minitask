@@ -22,12 +22,9 @@ def run():
         m.spawn(consumer, uid=uid)
         m.spawn(consumer, uid=uid)
         m.spawn(consumer, uid=uid)
-        N = len(m)
 
         with m.open_writer_queue(uid, force=True) as q:
             for i in range(20):
                 q.put(i)
                 time.sleep(0.01)
-            for _ in range(N):
-                q.put(None)
     print("ok")

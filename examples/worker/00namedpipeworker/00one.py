@@ -22,5 +22,5 @@ def run():
             for i in range(20):
                 q.put(i)
                 time.sleep(0.01)
-            q.put(None)
+
     print("ok")

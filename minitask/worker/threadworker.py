@@ -22,8 +22,9 @@ class Config:
 
 class Manager(contextlib.ExitStack):
     def __init__(self, config: t.Optional[Config] = None):
-        self.config = config or Config()
         super().__init__()
+        self.config = config or Config()
+        self.reader_count = 0
 
     def spawn(self, target: WorkerCallable, **kwargs: t.Any) -> threading.Thread:
         logger.info("spawn target=%r kwargs=%r", fullmodulename(target), kwargs)
@@ -58,11 +59,14 @@ class Manager(contextlib.ExitStack):
 
         q = fake.create_writer_port(uid).q
         yield Q(q)
+        for _ in range(self.reader_count):
+            q.put(None)
 
     @contextlib.contextmanager
     def open_reader_queue(self, uid: str) -> t.Iterator[Q[T]]:
         from minitask.transport import fake
 
+        self.reader_count += 1
         q = fake.create_reader_port(uid).q
         yield Q(q)
 
