@@ -25,9 +25,9 @@ class Manager(contextlib.ExitStack):
         self.config = config or Config()
         super().__init__()
 
-    def spawn(self, fn: WorkerCallable, *, uid: str) -> threading.Thread:
-        logger.info("spawn fn=%r uid=%r", fullmodulename(fn), uid)
-        th = threading.Thread(target=partial(fn, self, uid))
+    def spawn(self, target: WorkerCallable, **kwargs: t.Any) -> threading.Thread:
+        logger.info("spawn target=%r kwargs=%r", fullmodulename(target), kwargs)
+        th = threading.Thread(target=partial(target, self, **kwargs))
         self.threads.append(th)
         th.start()
         return th

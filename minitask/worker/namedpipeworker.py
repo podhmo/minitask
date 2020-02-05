@@ -30,8 +30,8 @@ class Manager(contextlib.ExitStack):
         self.config = config or Config()
         super().__init__()
 
-    def spawn(self, target: WorkerCallable, *, uid: str) -> subprocess.Popen[bytes]:
-        p = spawn_worker_process(self, target, uid=uid, config=self.config)
+    def spawn(self, target: WorkerCallable, **kwargs: t.Any) -> subprocess.Popen[bytes]:
+        p = spawn_worker_process(self, target, kwargs=kwargs, config=self.config)
         self.processes.append(p)
         return p
 
@@ -61,7 +61,9 @@ class Manager(contextlib.ExitStack):
     def open_writer_queue(self, uid: str, *, force: bool = False) -> t.Iterator[Q[T]]:
         try:
             with namedpipe.create_writer_port(uid, force=force) as wf:
-                yield Q(wf, format_protocol=PickleMessageFormat(), adapter=_QueueAdapter)
+                yield Q(
+                    wf, format_protocol=PickleMessageFormat(), adapter=_QueueAdapter
+                )
         except BrokenPipeError as e:
             logger.info("broken type: %s", e)
         except Exception as e:
@@ -73,7 +75,9 @@ class Manager(contextlib.ExitStack):
     def open_reader_queue(self, uid: str) -> t.Iterator[Q[T]]:
         try:
             with namedpipe.create_reader_port(uid) as rf:
-                yield Q(rf, format_protocol=PickleMessageFormat(), adapter=_QueueAdapter)
+                yield Q(
+                    rf, format_protocol=PickleMessageFormat(), adapter=_QueueAdapter
+                )
         except BrokenPipeError as e:
             logger.info("broken type: %s", e)
         except Exception as e:

@@ -74,8 +74,8 @@ class Manager:
     def generate_uid(self, suffix: t.Optional[t.Union[int, str]] = None,) -> str:
         return str(suffix)
 
-    def spawn(self, target: WorkerCallable, *, uid: str) -> subprocess.Popen[bytes]:
-        p = spawn_worker_process(self, target, uid=uid, config=self.config)
+    def spawn(self, target: WorkerCallable, **kwargs: t.Any) -> subprocess.Popen[bytes]:
+        p = spawn_worker_process(self, target, kwargs=kwargs, config=self.config)
         self.processes.append(p)
         return p
 

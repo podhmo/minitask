@@ -11,22 +11,33 @@ logger = logging.getLogger(__name__)
 
 
 def spawn_worker_process(
-    manager: WorkerManager, handler: WorkerCallable, *, uid: str, config: object,
+    manager: WorkerManager,
+    handler: WorkerCallable,
+    *,
+    config: object,
+    kwargs: t.Dict[str, t.Any]
 ) -> subprocess.Popen[bytes]:
+    import inspect
+
+    kwargs_ = inspect.getcallargs(handler, manager, **kwargs)
+    for k, v in list(kwargs_.items()):
+        if v == manager:
+            kwargs_.pop(k)
+
     cmd = [
         sys.executable,
         "-m",
         "minitask.tool",
         "worker",
-        "--uid",
-        uid,
+        "--kwargs",
+        _options.dumps(kwargs_),
         "--manager",
         fullfilename(manager),
         "--handler",
         fullfilename(handler),
         "--config",
         fullfilename(config),
-        "--options",
+        "--config-options",
         _options.dumps(_options.extract(config, config.__class__)),
     ]
     logger.info("spawn cmd=%s", ", ".join(map(str, cmd)))

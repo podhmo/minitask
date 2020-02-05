@@ -13,7 +13,7 @@ class WorkerCallable(tx.Protocol):
 
 
 class WorkerManager(tx.Protocol):
-    def spawn(self, target: WorkerCallable, *, uid: str) -> t.Any:
+    def spawn(self, target: WorkerCallable, **kwargs: t.Any) -> t.Any:
         ...
 
     def __len__(self) -> int:

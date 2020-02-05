@@ -29,20 +29,21 @@ def reader() -> None:
 @as_subcommand  # type: ignore
 def worker(
     *,
-    uid: str,
     manager: str,
     handler: str,
+    kwargs: t.Dict[str, t.Any],
     config: str,
-    options: t.Union[str, t.Dict[str, t.Any], None] = None
+    config_options: t.Union[str, t.Dict[str, t.Any], None] = None
 ) -> None:
     from magicalimport import import_symbol
     from minitask import _options
 
-    options = _options.loads(options)
+    kwargs = _options.loads(kwargs)
+    options = _options.loads(config_options)
     handler_callable = import_symbol(handler, cwd=True)
     config_object = import_symbol(config, cwd=True)(**options)
     manager_object = import_symbol(manager, cwd=True)(config_object)
-    handler_callable(manager_object, uid)
+    handler_callable(manager_object, **kwargs)
 
 
 as_subcommand.run()
