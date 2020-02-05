@@ -30,12 +30,13 @@ def create_writer_port(
     def _opener(path: str, flags: int) -> int:
         return os.open(path, os.O_WRONLY)  # NOT O_CREAT
 
-    logger.info("open fifo[W]: %s", endpoint)
     exc: t.Optional[Exception] = None
     for i, waittime in enumerate(retries):
         try:
             os.mkfifo(str(endpoint))  # TODO: force option?
-            return open(endpoint, "wb", opener=_opener)
+            io = open(endpoint, "wb", opener=_opener)
+            logger.info("open fifo[W]: %s", endpoint)
+            return io
         except FileNotFoundError as e:
             exc = e
             logger.debug("%r is not found, waiting, retry=%d", endpoint, i)
@@ -53,8 +54,8 @@ def create_reader_port(
     exc: t.Optional[Exception] = None
     for i, waittime in enumerate(retries, 1):
         try:
-            logger.info("open fifo[R]: %s", endpoint)
             io = open(endpoint, "rb")
+            logger.info("open fifo[R]: %s", endpoint)
             return io
         except FileNotFoundError as e:
             exc = e
