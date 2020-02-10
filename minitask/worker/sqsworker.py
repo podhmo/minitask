@@ -110,3 +110,13 @@ class Manager:
     @reify
     def processes(self) -> t.List[subprocess.Popen[bytes]]:
         return []
+
+
+if __name__ == "__main__":
+    from handofcats import as_subcommand
+
+    @as_subcommand
+    def create(name: str, *, fifo: bool = False) -> None:
+        print(f"aws sqs create-queue --queue-name {name}")
+
+    as_subcommand.run()
