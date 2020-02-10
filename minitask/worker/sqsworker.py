@@ -113,10 +113,34 @@ class Manager:
 
 
 if __name__ == "__main__":
-    from handofcats import as_subcommand
+    import handofcats
 
-    @as_subcommand
-    def create(name: str, *, fifo: bool = False) -> None:
-        print(f"aws sqs create-queue --queue-name {name}")
+    PREFIX = "minitask_"
 
-    as_subcommand.run()
+    @handofcats.as_subcommand
+    def create(name: str, *, fifo: bool = False, prefix=PREFIX) -> None:
+        if not name.startswith(prefix):
+            name = f"{prefix}{name}"
+
+        if fifo:
+            if not name.endswith(".fifo"):
+                name = f"{name}.fifo"
+            print(
+                f'aws sqs create-queue --queue-name {name} --attributes "ContentBasedDeduplication=true,FifoQueue=true"'
+            )
+        else:
+            print(f"aws sqs create-queue --queue-name {name}")
+
+    @handofcats.as_subcommand
+    def list(*, prefix=PREFIX) -> None:
+        print(f"""aws sqs list-queues --queue-name-prefix={prefix} | jqfpy 'get("QueueUrls")'""")
+
+    @handofcats.as_subcommand
+    def delete(name: str, *, prefix=PREFIX) -> None:
+        if not name.startswith(prefix):
+            name = f"{prefix}{name}"
+        print(
+            f"aws sqs delete-queue --queue-url $(aws sqs get-queue-url --queue-name={name})"
+        )
+
+    handofcats.as_subcommand.run(config=handofcats.Config(ignore_expose=True))
