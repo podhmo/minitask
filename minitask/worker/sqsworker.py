@@ -38,7 +38,10 @@ class SQSQueue:
 
     def put(self, body: str) -> None:
         # TODO: see botocore.exceptions:ClientError
-        self.sqs_client.send_message(QueueUrl=self.queue_url, MessageBody=body)
+        params = {}
+        if self.queue_url.endswith(".fifo"):
+            params["MessageGroupId"] = "default"  # xxx
+        self.sqs_client.send_message(QueueUrl=self.queue_url, MessageBody=body, **params)
 
     def get(self) -> t.Tuple[t.Any, t.Dict[str, t.Any], t.Callable[[], None]]:
         response = self.sqs_client.receive_message(
@@ -68,7 +71,7 @@ class SQSQueue:
 
 
 class Manager:
-    def __init__(self, config: t.Optional[Config]):
+    def __init__(self, config: t.Optional[Config] = None):
         self.config = config or Config()
 
     def generate_uid(self, suffix: t.Optional[t.Union[int, str]] = None,) -> str:
